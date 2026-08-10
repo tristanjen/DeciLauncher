@@ -57,9 +57,9 @@ partial class Program
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
 
-    // 清空进程工作集：将未使用的物理内存页面释放回系统（降低内存占用）
-    [DllImport("psapi.dll")]
-    private static extern bool EmptyWorkingSet(IntPtr hProcess);
+    // 原生消息框（Kestrel 启动失败等致命错误提示）
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBoxW(nint hWnd, string text, string caption, uint type);
 
     // ===== macOS CoreGraphics API 声明 =====
 

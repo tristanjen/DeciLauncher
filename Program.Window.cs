@@ -58,8 +58,8 @@ partial class Program
             .SetMediaStreamEnabled(false)
             // 禁用媒体自动播放
             .SetMediaAutoplayEnabled(false)
-            // 禁用 JavaScript 剪贴板访问
-            .SetJavascriptClipboardAccessEnabled(false)
+            // 允许 JavaScript 剪贴板访问（复制 UUID 按钮依赖 navigator.clipboard.writeText，仍需用户手势）
+            .SetJavascriptClipboardAccessEnabled(true)
             // 禁用文件系统访问 API
             .SetFileSystemAccessEnabled(false)
             // 禁用全屏模式

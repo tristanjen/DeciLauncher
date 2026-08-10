@@ -4,6 +4,8 @@ using MinecraftLaunch.Components.Parser;
 using MinecraftLaunch.Extensions;
 // Java 运行时自动检测
 using MinecraftLaunch.Utilities;
+// JSON 序列化（替换手拼 JSON）
+using System.Text.Json;
 // Photino 窗口（前端消息回传）
 using Photino.NET;
 
@@ -18,22 +20,32 @@ partial class Program
     {
         try
         {
-            var items = new List<string>();
+            var items = new List<object>();
 
             await foreach (var java in JavaUtil.EnumerableJavaAsync())
             {
-                var path = java.JavaPath.Replace("\\", "\\\\");
-                var version = java.JavaVersion?.Replace("\\", "\\\\") ?? "";
-                items.Add($"{{\"path\":\"{path}\",\"version\":\"{version}\"}}");
+                items.Add(new
+                {
+                    path = java.JavaPath,
+                    version = java.JavaVersion ?? ""
+                });
             }
 
-            var message = $"{{\"type\":\"java-list\",\"javas\":[{string.Join(",", items)}]}}";
-            window.SendWebMessage(message);
+            var message = JsonSerializer.Serialize(new
+            {
+                type = "java-list",
+                javas = items
+            });
+            window.Invoke(() => window.SendWebMessage(message));
         }
         catch (Exception ex)
         {
-            var message = $"{{\"type\":\"java-error\",\"message\":\"{ex.Message.Replace("\\", "\\\\")}\"}}";
-            window.SendWebMessage(message);
+            var message = JsonSerializer.Serialize(new
+            {
+                type = "java-error",
+                message = ex.Message
+            });
+            window.Invoke(() => window.SendWebMessage(message));
         }
     }
 

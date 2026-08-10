@@ -29,12 +29,8 @@
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <!-- 自包含发布：运行时内嵌，无需用户安装 .NET 运行时 -->
         <SelfContained>true</SelfContained>
-        <!-- 启用 IL 裁剪：移除未使用的代码路径，减小发布包体积 -->
-        <PublishTrimmed>true</PublishTrimmed>
         <!-- 关闭托管侧调试符号生成 -->
         <DebugType>none</DebugType>
-        <!-- 抑制 JsonSerializer 匿名类型裁剪警告（均已通过 TrimmerRootAssembly 保留） -->
-        <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
         <!-- 支持的运行时标识符列表（用于多平台发布） -->
         <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
         <!-- 应用版本号 -->
@@ -78,13 +74,6 @@
           Vite 构建输出到 Resources/wwwroot/，此处作为内嵌资源提供静态文件服务
         -->
         <EmbeddedResource Include="Resources\wwwroot\**" LinkBase="Resources\wwwroot"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- 裁剪器根程序集：保留反射路径所需的程序集 -->
-        <TrimmerRootAssembly Include="Deci Launcher" />
-        <TrimmerRootAssembly Include="MinecraftLaunch" />
-        <TrimmerRootAssembly Include="MinecraftLaunch.Base" />
     </ItemGroup>
 
 </Project>

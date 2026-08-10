@@ -23,6 +23,10 @@ partial class Program
     /// 当前正在运行的 Minecraft 进程（用于关闭游戏）
     /// </summary>
     private static MinecraftProcess? RunningProcess;
+    /// <summary>
+    /// 当前启动任务的取消令牌（支持在 RunAsync 期间取消）
+    /// </summary>
+    private static CancellationTokenSource LaunchCts = new();
 
     /// <summary>
     /// 关闭正在运行的游戏（同时供 CancelLaunch 复用）
@@ -45,11 +49,16 @@ partial class Program
     }
 
     /// <summary>
-    /// 取消正在进行的游戏启动（复用 CloseGame）
+    /// 取消正在进行的游戏启动（取消 RunAsync + 关闭已启动的进程）
     /// </summary>
     private static void CancelLaunch(PhotinoWindow window)
     {
+        LaunchCts.Cancel();
         CloseGame(window);
+        // 启动尚未完成（RunningProcess 为空）时 CloseGame 直接返回，仍需通知前端复位状态
+        if (RunningProcess == null)
+            window.Invoke(() =>
+                window.SendWebMessage("{\"type\":\"game-exited\"}"));
     }
 
     /// <summary>
@@ -69,6 +78,10 @@ partial class Program
             System.Diagnostics.Debug.WriteLine($"[Launch] 内存: {maxMemory} MB");
             System.Diagnostics.Debug.WriteLine($"[Launch] 路径: {minecraftPath}");
 
+            // 重建取消令牌（上次启动可能已取消）
+            LaunchCts = new CancellationTokenSource();
+            var launchToken = LaunchCts.Token;
+
             if (maxMemory < 512) maxMemory = 512;
             if (maxMemory > 16384) maxMemory = 16384;
 
@@ -76,9 +89,11 @@ partial class Program
             var accountEntry = Accounts.FirstOrDefault(a => a.Uuid == accountUuid);
             if (accountEntry == null)
             {
-                window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = "未找到选中的账户" }));
+                window.Invoke(() =>
+                    window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = "未找到选中的账户" })));
                 return;
             }
+            if (launchToken.IsCancellationRequested) { await CleanupCancelled(window); return; }
             if (!AuthenticatedAccounts.TryGetValue(accountEntry.Uuid, out var account))
             {
                 account = new OfflineAuthenticator().Authenticate(accountEntry.Username);
@@ -90,12 +105,15 @@ partial class Program
             var game = parser.GetMinecraft(gameId);
             if (game == null)
             {
-                window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = "未找到选中的游戏版本" }));
+                window.Invoke(() =>
+                    window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = "未找到选中的游戏版本" })));
                 return;
             }
+            if (launchToken.IsCancellationRequested) { await CleanupCancelled(window); return; }
 
-            // 3. 查找 Java 运行时
-            var javas = JavaUtil.EnumerableJavaAsync().ToBlockingEnumerable().ToList();
+            // 3. 查找 Java 运行时（后台线程执行，避免阻塞 UI）
+            var javas = await Task.Run(() => JavaUtil.EnumerableJavaAsync().ToBlockingEnumerable().ToList(), launchToken);
+            if (launchToken.IsCancellationRequested) { await CleanupCancelled(window); return; }
             MinecraftLaunch.Base.Models.Game.JavaEntry? java = javaPath switch
             {
                 "__auto__" or "" => game.GetAppropriateJava(javas),
@@ -103,7 +121,8 @@ partial class Program
             };
             if (java == null)
             {
-                window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = "未找到合适的 Java 运行时" }));
+                window.Invoke(() =>
+                    window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = "未找到合适的 Java 运行时" })));
                 return;
             }
 
@@ -131,12 +150,24 @@ partial class Program
             System.Diagnostics.Debug.WriteLine("[Launch] 正在调用 RunAsync...");
             try
             {
-                RunningProcess = await runner.RunAsync(gameId);
+                RunningProcess = await runner.RunAsync(gameId, launchToken);
+            }
+            catch (OperationCanceledException)
+            {
+                System.Diagnostics.Debug.WriteLine("[Launch] 启动已取消");
+                await CleanupCancelled(window);
+                return;
             }
             catch (Exception rex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Launch] RunAsync 异常: {rex}");
-                window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = $"启动异常: {rex.Message}" }));
+                window.Invoke(() =>
+                    window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = $"启动异常: {rex.Message}" })));
+                return;
+            }
+            if (launchToken.IsCancellationRequested)
+            {
+                await CleanupCancelled(window);
                 return;
             }
 
@@ -174,6 +205,7 @@ partial class Program
                     };
                     var procProp = typeof(MinecraftProcess).GetProperty("Process");
                     procProp?.SetValue(RunningProcess, proc);
+                    if (launchToken.IsCancellationRequested) { await CleanupCancelled(window); return; }
                     RunningProcess.Start();
                 }
                 catch (Exception ex)
@@ -221,12 +253,14 @@ partial class Program
                                 window.SendWebMessage("{\"type\":\"game-exited\"}"));
                         };
 
+                        if (launchToken.IsCancellationRequested) { await CleanupCancelled(window); return; }
                         RunningProcess.Start();
                     }
                     catch (Exception fallbackEx)
                     {
                         System.Diagnostics.Debug.WriteLine($"[Launch] 手动启动失败: {fallbackEx}");
-                        window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = $"启动失败: {fallbackEx.Message}" }));
+                        window.Invoke(() =>
+                            window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = $"启动失败: {fallbackEx.Message}" })));
                         return;
                     }
                 }
@@ -263,6 +297,12 @@ partial class Program
                         }
                         if (processRef.Process?.HasExited == true)
                         {
+                            // 退出事件处理器可能已接管（RunningProcess 已被清空），避免与 game-exited 重复报错
+                            if (RunningProcess != processRef)
+                            {
+                                System.Diagnostics.Debug.WriteLine("[Launch] 轮询终止: 退出事件已处理");
+                                return;
+                            }
                             System.Diagnostics.Debug.WriteLine($"[MC] 启动失败，退出码: {processRef.Process.ExitCode}");
                             window.Invoke(() =>
                                 window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = "游戏启动失败，请检查版本完整性" })));
@@ -297,8 +337,30 @@ partial class Program
         }
         catch (Exception ex)
         {
-            window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = ex.Message }));
+            window.Invoke(() =>
+                window.SendWebMessage(JsonSerializer.Serialize(new { type = "game-error", message = ex.Message })));
         }
+    }
+
+    /// <summary>
+    /// 启动被取消后的清理：释放进程并通知前端
+    /// </summary>
+    private static async Task CleanupCancelled(PhotinoWindow window)
+    {
+        MinecraftProcess? process = RunningProcess;
+        RunningProcess = null;
+        try
+        {
+            process?.Close();
+            process?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Launch] 取消清理失败: {ex.Message}");
+        }
+        await Task.CompletedTask;
+        window.Invoke(() =>
+            window.SendWebMessage("{\"type\":\"game-exited\"}"));
     }
 
     /// <summary>
@@ -382,6 +444,11 @@ partial class Program
             foreach (var kv in replacements)
                 args[i] = args[i].Replace(kv.Key, kv.Value);
         }
+
+        // 校验残留模板变量（版本 JSON 若使用了未收录的 ${...} 会原样传给 JVM，报错晦涩）
+        var leftovers = args.Where(a => a.Contains("${"));
+        if (leftovers.Any())
+            throw new InvalidOperationException($"未替换的模板变量: {string.Join(", ", leftovers)}");
 
         return args;
     }
@@ -533,9 +600,13 @@ partial class Program
                     !string.Equals(name.GetString(), currentOs, StringComparison.OrdinalIgnoreCase))
                     continue;
             }
-            if (rule.TryGetProperty("action", out var action) &&
-                action.ValueEquals("allow"u8))
-                allowed = true;
+            if (rule.TryGetProperty("action", out var action))
+            {
+                if (action.ValueEquals("allow"u8))
+                    allowed = true;
+                else if (action.ValueEquals("disallow"u8))
+                    allowed = false;
+            }
         }
         return allowed;
     }

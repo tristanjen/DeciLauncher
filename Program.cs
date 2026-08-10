@@ -1,5 +1,3 @@
-// 系统诊断：用于获取进程句柄以释放工作集内存
-using System.Diagnostics;
 // 反射（获取入口程序集以读取内嵌资源）
 using System.Reflection;
 // ASP.NET Core 最小化 API（Release 模式提供内嵌静态文件）
@@ -84,7 +82,17 @@ partial class Program
             var app = builder.Build();
             app.UseDefaultFiles();
             app.UseStaticFiles(new StaticFileOptions { DefaultContentType = "text/plain" });
-            app.RunAsync();
+            try
+            {
+                // StartAsync 同步等待服务器绑定完成，端口占用等错误在此抛出
+                app.StartAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FATAL] Web 服务器启动失败: {ex}");
+                ShowFatalError($"无法在端口 8000 启动本地服务器，请确认端口未被占用。\n\n{ex.Message}");
+                return;
+            }
             appUrl = "http://localhost:8000/index.html";
         }
 
@@ -99,19 +107,22 @@ partial class Program
         Logger.LogInformation("Deci Launcher v0.1.0-beta.1 started");
 #endif
 
-        // Windows 下启动 30 秒定时任务：定时释放未使用的物理内存页
-        if (OperatingSystem.IsWindows())
-        {
-            using var trimTimer = new System.Timers.Timer(30_000);
-            // 每 30 秒清空一次工作集（释放冷内存页面）
-            trimTimer.Elapsed += (_, _) => EmptyWorkingSet(Process.GetCurrentProcess().Handle);
-            // 启用重复触发
-            trimTimer.AutoReset = true;
-            // 启动定时器
-            trimTimer.Start();
-        }
-
         // 阻塞主线程，等待窗口关闭（进入消息循环）
         window.WaitForClose();
+    }
+
+    /// <summary>
+    /// 致命错误提示：Windows 弹原生消息框，其他平台输出到 stderr
+    /// </summary>
+    private static void ShowFatalError(string message)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            MessageBoxW(IntPtr.Zero, message, "Deci Launcher", 0x10 /* MB_ICONERROR */);
+        }
+        else
+        {
+            Console.Error.WriteLine($"[FATAL] {message}");
+        }
     }
 }

@@ -4,6 +4,7 @@ using MinecraftLaunch.Components.Authenticator;
 using System.IO;
 // JSON 序列化（替换手拼 JSON）
 using System.Text.Json;
+using System.Text.Json.Serialization;
 // Photino 窗口（前端消息回传）
 using Photino.NET;
 // Game API（Account 类型缓存）
@@ -25,7 +26,12 @@ partial class Program
     /// <summary>
     /// 账户数据结构（序列化为 JSON 数组格式存储至 accounts.json）
     /// </summary>
-    private record AccountEntry(string Username, string Uuid, string Type, string SkinModel);
+    private record AccountEntry(
+        [property: JsonPropertyName("username")] string Username,
+        [property: JsonPropertyName("uuid")] string Uuid,
+        [property: JsonPropertyName("type")] string Type,
+        [property: JsonPropertyName("skinModel")] string SkinModel
+    );
 
     /// <summary>
     /// 从 accounts.json 加载已保存的账户，并迁移旧格式
@@ -93,12 +99,7 @@ partial class Program
         try
         {
             Directory.CreateDirectory(AccountsDir);
-            var entries = Accounts.Select(a =>
-            {
-                var username = a.Username.Replace("\\", "\\\\").Replace("\"", "\\\"");
-                return $"{{\"type\":\"{a.Type}\",\"uuid\":\"{a.Uuid}\",\"username\":\"{username}\",\"skinModel\":\"{a.SkinModel}\"}}";
-            });
-            File.WriteAllText(AccountsFilePath, $"[{string.Join(",", entries)}]");
+            File.WriteAllText(AccountsFilePath, JsonSerializer.Serialize(Accounts));
         }
         catch (Exception ex)
         {
@@ -147,14 +148,17 @@ partial class Program
 
     private static void SendAccountList(PhotinoWindow window)
     {
-        var items = Accounts.Select(a =>
+        window.SendWebMessage(JsonSerializer.Serialize(new
         {
-            var username = a.Username.Replace("\\", "\\\\").Replace("\"", "\\\"");
-            return $"{{\"username\":\"{username}\",\"uuid\":\"{a.Uuid}\",\"type\":\"{a.Type}\",\"skinModel\":\"{a.SkinModel}\"}}";
-        });
-
-        var message = $"{{\"type\":\"account-list\",\"accounts\":[{string.Join(",", items)}]}}";
-        window.SendWebMessage(message);
+            type = "account-list",
+            accounts = Accounts.Select(a => new
+            {
+                username = a.Username,
+                uuid = a.Uuid,
+                type = a.Type,
+                skinModel = a.SkinModel
+            })
+        }));
     }
 
     /// <summary>
