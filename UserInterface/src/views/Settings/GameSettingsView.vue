@@ -5,8 +5,10 @@ import { computed, watch } from 'vue'
 import { sendNative } from '../../native'
 // 全局共享状态（Java 列表、选中项、扫描标记、内存上限）
 import { javaList, selectedJava, scanning, hasScanned, maxMemory } from '../../stores/store'
-// 自定义下拉组件（替代原生 <select> 以统一跨平台样式）
-import Dropdown from '../../components/Dropdown.vue'
+// 自定义控件（下拉/按钮/滑块）
+import Dropdown from '../../components/Controls/Dropdown.vue'
+import DefaultButton from '../../components/Controls/DefaultButton.vue'
+import RangeSlider from '../../components/Controls/RangeSlider.vue'
 
 /**
  * 向 C# 后端发起 Java 运行时扫描
@@ -39,11 +41,6 @@ const dropdownOptions = computed(() => {
 watch(maxMemory, (val) => {
   localStorage.setItem('max-memory', String(val))
 })
-
-// 滑块背景渐变（绿色填充 / 灰色剩余）
-const sliderBg = computed(() =>
-  `linear-gradient(to right, #B7EB8F ${((maxMemory.value - 512) / (8192 - 512)) * 100}%, #e5e5e5 ${((maxMemory.value - 512) / (8192 - 512)) * 100}%)`
-)
 </script>
 
 <template>
@@ -54,30 +51,20 @@ const sliderBg = computed(() =>
         <span class="text-sm font-medium">Java 运行时</span>
         <Dropdown v-model="selectedJava" :options="dropdownOptions" placeholder="还没有扫描哦~" />
       </label>
-      <button class="h-8 px-3 rounded-lg text-sm transition ease-out duration-150
-               bg-white/50 border border-[#B7EB8F] hover:bg-[#B7EB8F]
-               active:bg-[#95DE64] active:scale-95 shrink-0
-               disabled:opacity-50 disabled:cursor-not-allowed"
+      <DefaultButton
+        :loading="scanning"
+        loading-text="扫描中..."
         :disabled="scanning"
         @click="scanJava"
       >
-        {{ scanning ? '扫描中...' : '扫描' }}
-      </button>
+        扫描
+      </DefaultButton>
     </div>
     <!-- 游戏内存行 -->
     <label class="flex flex-col gap-1">
       <span class="text-sm font-medium">游戏内存</span>
       <div class="flex items-center gap-3">
-        <input
-          type="range"
-          min="512"
-          max="8192"
-          step="256"
-          v-model.number="maxMemory"
-          class="grow h-2 rounded-full appearance-none cursor-pointer
-                 accent-[#52C41A]"
-          :style="{ background: sliderBg }"
-        />
+        <RangeSlider v-model="maxMemory" />
         <span class="text-sm text-gray-700 w-16 text-right shrink-0">
           {{ maxMemory >= 1024 ? (maxMemory / 1024).toFixed(1) + ' GB' : maxMemory + ' MB' }}
         </span>
@@ -85,21 +72,3 @@ const sliderBg = computed(() =>
     </label>
   </div>
 </template>
-
-<style scoped>
-input[type='range']::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  margin-top: -4px;
-  border-radius: 50%;
-  background: #52C41A;
-  cursor: pointer;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.15);
-}
-
-input[type='range']::-webkit-slider-runnable-track {
-  height: 8px;
-  border-radius: 4px;
-}
-</style>

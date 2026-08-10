@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import { toast } from '../stores/store'
+import { toast } from '../../stores/store'
 
 let timer: ReturnType<typeof setTimeout> | undefined
 

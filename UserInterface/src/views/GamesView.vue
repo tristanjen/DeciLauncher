@@ -5,6 +5,10 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { sendNative, onNativeMessage } from '../native'
 // 全局共享状态（游戏列表，App.vue 启动时已扫描）
 import { games, scanningGames, gamePath, selectedGame } from '../stores/store'
+// 自定义控件
+import DefaultButton from '../components/Controls/DefaultButton.vue'
+import RadioItem from '../components/Controls/RadioItem.vue'
+import Card from '../components/Controls/Card.vue'
 
 // 原版游戏（isVanilla = true）
 const vanillaGames = computed(() => games.value.filter(g => g.isVanilla))
@@ -57,69 +61,46 @@ function toggleGame(id: string) {
     <div class="flex items-center justify-between">
       <span class="text-xs text-gray-500">游戏目录：{{ gamePath }}</span>
       <div class="flex gap-2">
-        <button
-          class="h-8 px-3 rounded-lg text-sm transition duration-150
-                 bg-white/50 border border-[#B7EB8F] hover:bg-[#B7EB8F]
-                 active:bg-[#95DE64] active:scale-95 shrink-0"
-          @click="pickGamePath"
-        >
-          浏览
-        </button>
-        <button
-          class="h-8 px-3 rounded-lg text-sm transition duration-150
-                 bg-white/50 border border-[#B7EB8F] hover:bg-[#B7EB8F]
-                 active:bg-[#95DE64] active:scale-95 shrink-0
-                 disabled:opacity-50 disabled:cursor-not-allowed"
+        <DefaultButton @click="pickGamePath">浏览</DefaultButton>
+        <DefaultButton
+          :loading="scanningGames"
+          loading-text="刷新中..."
           :disabled="scanningGames"
           @click="scanGames"
         >
-          {{ scanningGames ? '刷新中...' : '刷新' }}
-        </button>
+          刷新
+        </DefaultButton>
       </div>
     </div>
     <!-- 游戏内容区：下拉弹入动画 -->
     <Transition name="content-drop" appear>
       <div v-if="!scanningGames" key="games" class="grow flex flex-col gap-3">
         <!-- 原版分区卡片 -->
-        <div v-if="vanillaGames.length > 0" class="flex flex-col gap-2 p-3 rounded-lg bg-white/25 hover:bg-white/50
-                 shadow-[0_0_4px_#52C41A3F] border border-transparent hover:border-[#52C41A]/25
-                 transition ease-out duration-150">
+        <Card v-if="vanillaGames.length > 0" class="flex flex-col gap-2">
           <span class="text-xs text-[#333] font-medium">原版</span>
           <div v-for="g in vanillaGames" :key="g.id"
             class="flex items-center cursor-pointer"
             @click="toggleGame(g.id)">
-            <!-- 单选圆 -->
-            <svg class="size-4 shrink-0 mr-2" viewBox="0 0 12 12">
-              <circle cx="6" cy="6" r="5" :fill="selectedGame === g.id ? '#52C41A' : 'none'"
-                stroke="#B7EB8F" stroke-width="1.5"/>
-              <circle v-if="selectedGame === g.id" class="radio-dot" cx="6" cy="6" r="2" fill="#fff"/>
-            </svg>
+            <RadioItem :selected="selectedGame === g.id" />
             <div class="flex flex-col">
               <span class="text-sm">{{ g.id }}</span>
               <span class="text-xs text-gray-500">Minecraft {{ g.mcVersion }}</span>
             </div>
           </div>
-        </div>
+        </Card>
         <!-- 模组分区分区卡片 -->
-        <div v-if="moddedGames.length > 0" class="flex flex-col gap-2 p-3 rounded-lg bg-white/25 hover:bg-white/50
-                 shadow-[0_0_4px_#52C41A3F] border border-transparent hover:border-[#52C41A]/25
-                 transition ease-out duration-150">
+        <Card v-if="moddedGames.length > 0" class="flex flex-col gap-2">
           <span class="text-xs text-[#333] font-medium">可安装模组</span>
           <div v-for="g in moddedGames" :key="g.id"
             class="flex items-center cursor-pointer"
             @click="toggleGame(g.id)">
-            <!-- 单选圆 -->
-            <svg class="size-4 shrink-0 mr-2" viewBox="0 0 12 12">
-              <circle cx="6" cy="6" r="5" :fill="selectedGame === g.id ? '#52C41A' : 'none'"
-                stroke="#B7EB8F" stroke-width="1.5"/>
-              <circle v-if="selectedGame === g.id" class="radio-dot" cx="6" cy="6" r="2" fill="#fff"/>
-            </svg>
+            <RadioItem :selected="selectedGame === g.id" />
             <div class="flex flex-col">
               <span class="text-sm">{{ g.id }}</span>
               <span class="text-xs text-gray-500">Minecraft {{ g.mcVersion }} / {{ g.loader }}</span>
             </div>
           </div>
-        </div>
+        </Card>
         <!-- 空列表提示 -->
         <p v-if="games.length === 0" class="grow flex items-center justify-center text-2xl font-medium">
           未找到已安装的游戏
@@ -144,15 +125,5 @@ function toggleGame(id: string) {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.radio-dot {
-  animation: dot-in 0.15s ease-out;
-  transform-origin: 6px 6px;
-}
-
-@keyframes dot-in {
-  from { transform: scale(0); }
-  to { transform: scale(1); }
 }
 </style>

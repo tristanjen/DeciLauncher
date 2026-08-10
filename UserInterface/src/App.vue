@@ -2,9 +2,9 @@
 import { onMounted } from 'vue'
 import { sendNative, onNativeMessage } from './native'
 import { javaList, selectedJava, scanning, hasScanned, games, scanningGames, gamePath, accounts, notification, accountBusy, selectedGame, selectedAccount, launching, gameRunning } from './stores/store'
-import TitleBar from './components/TitleBar.vue';
-import Notification from './components/Notification.vue';
-import Toast from './components/Toast.vue';
+import TitleBar from './components/Controls/TitleBar.vue';
+import Notification from './components/Controls/Notification.vue';
+import Toast from './components/Controls/Toast.vue';
 
 onMounted(async () => {
   onNativeMessage('java-list', (payload) => {

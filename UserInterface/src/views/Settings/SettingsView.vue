@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-
-// 侧边栏链接基础样式
-const linkClass = 'transition ease-out duration-150 hover:bg-[#B7EB8F] inline-flex items-center justify-center align-middle w-44 h-9 text-sm rounded-lg'
-
-// 侧边栏链接激活样式
-const activeLinkClass = 'bg-[#D9F7BE] text-[#389E0D]! font-medium'
+import Card from '../../components/Controls/Card.vue'
+import NavLink from '../../components/Controls/NavLink.vue'
 
 // 侧边栏滑入动画触发
 const sidebarVisible = ref(false)
@@ -19,34 +15,16 @@ onMounted(async () => {
 <template>
   <div class="flex gap-3">
     <Transition name="sidebar-slide">
-      <div v-if="sidebarVisible"
-        class="flex flex-col gap-2 p-3 bg-white/25 hover:bg-white/50 shadow-[0_0_4px_#52C41A3F] hover:shadow-[0_0_8px_#52C41A3F] rounded-lg transition ease-out duration-150 border border-transparent hover:border-[#52C41A]/25 w-50">
-        <RouterLink to="/settings/gameSettings" custom v-slot="{ navigate, isActive }">
-          <div class="relative flex items-center active:scale-95 transition ease-in-out duration-150">
-            <div v-if="isActive"
-              class="absolute left-0 w-1 h-5 rounded-full bg-[#52C41A] transition ease-in-out duration-150" />
-            <span @click="navigate" :class="[linkClass, isActive && activeLinkClass]">游戏设置</span>
-          </div>
-        </RouterLink>
-        <RouterLink to="/settings/LauncherSettings" custom v-slot="{ navigate, isActive }">
-          <div class="relative flex items-center active:scale-95 transition ease-out duration-150">
-            <div v-if="isActive"
-              class="absolute left-0 w-1 h-5 rounded-full bg-[#52C41A] transition ease-in-out duration-150" />
-            <span @click="navigate" :class="[linkClass, isActive && activeLinkClass]">启动器设置</span>
-          </div>
-        </RouterLink>
-        <RouterLink to="/settings/about" custom v-slot="{ navigate, isActive }">
-          <div class="relative flex items-center active:scale-95 transition ease-out duration-150">
-            <div v-if="isActive"
-              class="absolute left-0 w-1 h-5 rounded-full bg-[#52C41A] transition ease-in-out duration-150" />
-            <span @click="navigate" :class="[linkClass, isActive && activeLinkClass]">关于</span>
-          </div>
-        </RouterLink>
-      </div>
+      <Card v-if="sidebarVisible" hover-shadow class="flex flex-col gap-2 w-50">
+        <NavLink to="/settings/gameSettings" label="游戏设置" size="sidebar" />
+        <NavLink to="/settings/LauncherSettings" label="启动器设置" size="sidebar" />
+        <NavLink to="/settings/about" label="关于" size="sidebar" />
+      </Card>
     </Transition>
     <Transition name="content-drop" mode="out-in" appear>
-      <RouterView :key="$route.fullPath"
-        class="grow p-3 bg-white/25 hover:bg-white/50 shadow-[0_0_4px_#52C41A3F] hover:shadow-[0_0_8px_#52C41A3F] rounded-lg transition ease-out duration-150 border border-transparent hover:border-[#52C41A]/25" />
+      <Card hover-shadow class="grow flex flex-col">
+        <RouterView :key="$route.fullPath" />
+      </Card>
     </Transition>
   </div>
 </template>
