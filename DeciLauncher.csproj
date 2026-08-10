@@ -29,6 +29,8 @@
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <!-- 自包含发布：运行时内嵌，无需用户安装 .NET 运行时 -->
         <SelfContained>true</SelfContained>
+        <!-- 启用 IL 裁剪（partial 模式：仅裁剪明确标记的程序集，兼容反射与 ASP.NET 托管） -->
+        <PublishTrimmed>true</PublishTrimmed>
         <!-- 关闭托管侧调试符号生成 -->
         <DebugType>none</DebugType>
         <!-- 支持的运行时标识符列表（用于多平台发布） -->
@@ -74,6 +76,12 @@
           Vite 构建输出到 Resources/wwwroot/，此处作为内嵌资源提供静态文件服务
         -->
         <EmbeddedResource Include="Resources\wwwroot\**" LinkBase="Resources\wwwroot"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- 裁剪器根程序集：保留反射路径所需的程序集（JavaPath/Process 反射赋值） -->
+        <TrimmerRootAssembly Include="MinecraftLaunch" />
+        <TrimmerRootAssembly Include="MinecraftLaunch.Base" />
     </ItemGroup>
 
 </Project>
