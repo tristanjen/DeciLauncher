@@ -13,19 +13,19 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
-    "vue": "^3.5.40",
+    "vue": "^3.5.41",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node20": "^20.1.9",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.2.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
-    "npm-run-all2": "^9.0.2",
+    "npm-run-all2": "^9.0.3",
     "tailwindcss": "^4.3.3",
-    "typescript": "~5.8.2",
-    "vite": "^8.1.5",
-    "vue-tsc": "2.2.0"
+    "typescript": "~5.9.3",
+    "vite": "^8.2.1",
+    "vue-tsc": "3.3.9"
   }
 }
