@@ -31,6 +31,9 @@
         <SelfContained>true</SelfContained>
         <!-- 启用 IL 裁剪（partial 模式：仅裁剪明确标记的程序集，兼容反射与 ASP.NET 托管） -->
         <PublishTrimmed>true</PublishTrimmed>
+        <!-- PublishTrimmed 会自动把 JsonSerializerIsReflectionEnabledByDefault 注入为 false，
+             而本启动器的全部前端消息依赖反射序列化匿名对象，显式覆盖回 true -->
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
         <!-- 关闭托管侧调试符号生成 -->
         <DebugType>none</DebugType>
         <!-- 支持的运行时标识符列表（用于多平台发布） -->

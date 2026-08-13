@@ -40,10 +40,6 @@ partial class Program
     [STAThread]
     static void Main(string[] args)
     {
-        // Windows 下解除 DPI 虚拟化以获取真实系统缩放值
-        if (OperatingSystem.IsWindows())
-            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
-
         // MinecraftLaunch 全局初始化（下载线程、重试、UserAgent 等）
         InitializeHelper.Initialize(settings =>
         {

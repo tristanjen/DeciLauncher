@@ -22,8 +22,8 @@ onMounted(async () => {
       </Card>
     </Transition>
     <Transition name="content-drop" mode="out-in" appear>
-      <Card hover-shadow class="grow flex flex-col">
-        <RouterView :key="$route.fullPath" />
+      <Card hover-shadow class="grow flex flex-col" :key="$route.fullPath">
+        <RouterView />
       </Card>
     </Transition>
   </div>
