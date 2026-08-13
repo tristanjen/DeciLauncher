@@ -14,73 +14,100 @@ namespace DeciLauncher;
 partial class Program
 {
     /// <summary>
-    /// 读取指定 .minecraft 目录下已安装的游戏版本，通过 WebView 回传给前端
+    /// 读取指定 .minecraft 目录下已安装的游戏版本，通过 WebView 回传给前端。
+    /// 解析在后台线程执行，避免在 Photino 消息线程上同步阻塞 UI；
+    /// 通过递增版本号丢弃过期的扫描结果，避免并发扫描乱序覆盖
     /// </summary>
+    private static int ScanGamesVersion;
+
     private static void ScanGames(PhotinoWindow window, string minecraftPath)
     {
-        var games = new List<object>();
+        // 捕获本次扫描的版本号，结果发送前校验是否仍为最新请求
+        var version = Interlocked.Increment(ref ScanGamesVersion);
+        bool IsStale() => version != Volatile.Read(ref ScanGamesVersion);
 
-        var versionsDir = Path.Combine(minecraftPath, "versions");
-        if (!Directory.Exists(versionsDir))
+        _ = Task.Run(() =>
         {
-            try { Directory.CreateDirectory(minecraftPath); } catch { /* 权限不足时静默跳过，不影响启动 */ }
-            window.SendWebMessage(JsonSerializer.Serialize(new
-            {
-                type = "game-list",
-                path = minecraftPath,
-                games = Array.Empty<object>()
-            }));
-            return;
-        }
+            var games = new List<object>();
 
-        var parser = new MinecraftParser(minecraftPath);
-
-        foreach (var dir in Directory.GetDirectories(versionsDir))
-        {
-            var versionId = Path.GetFileName(dir);
             try
             {
-                var game = parser.GetMinecraft(versionId);
-                if (game is null) continue;
-
-                var loader = "";
-
-                if (game is ModifiedMinecraftEntry modded)
+                var versionsDir = Path.Combine(minecraftPath, "versions");
+                if (!Directory.Exists(versionsDir))
                 {
-                    var loaders = modded.ModLoaders.Select(ml =>
-                    {
-                        var version = ml.Version;
-                        if (ml.Type == ModLoaderType.NeoForge)
+                    // 扫描是只读操作：目录不存在时直接返回空列表，不创建任何目录
+                    if (!IsStale())
+                        TryNotifyWindow(window, JsonSerializer.Serialize(new
                         {
-                            var idx = game.Id.LastIndexOf("NeoForge_");
-                            if (idx >= 0)
-                                version = game.Id[(idx + "NeoForge_".Length)..];
-                        }
-                        return string.IsNullOrEmpty(version) ? $"{ml.Type}" : $"{ml.Type} {version}";
-                    }).ToArray();
-                    loader = string.Join(" + ", loaders);
+                            type = "game-list",
+                            path = minecraftPath,
+                            games = Array.Empty<object>()
+                        }));
+                    return;
                 }
 
-                games.Add(new
+                var parser = new MinecraftParser(minecraftPath);
+
+                foreach (var dir in Directory.GetDirectories(versionsDir))
                 {
-                    id = game.Id,
-                    isVanilla = game.IsVanilla,
-                    mcVersion = game.Version.VersionId,
-                    loader
-                });
+                    var versionId = Path.GetFileName(dir);
+                    try
+                    {
+                        var game = parser.GetMinecraft(versionId);
+                        if (game is null) continue;
+
+                        var loader = "";
+
+                        if (game is ModifiedMinecraftEntry modded)
+                        {
+                            var loaders = modded.ModLoaders.Select(ml =>
+                            {
+                                var version = ml.Version;
+                                if (ml.Type == ModLoaderType.NeoForge)
+                                {
+                                    var idx = game.Id.LastIndexOf("NeoForge_");
+                                    if (idx >= 0)
+                                        version = game.Id[(idx + "NeoForge_".Length)..];
+                                }
+                                return string.IsNullOrEmpty(version) ? $"{ml.Type}" : $"{ml.Type} {version}";
+                            }).ToArray();
+                            loader = string.Join(" + ", loaders);
+                        }
+
+                        games.Add(new
+                        {
+                            id = game.Id,
+                            isVanilla = game.IsVanilla,
+                            mcVersion = game.Version.VersionId,
+                            loader
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[WARN] 跳过游戏 {versionId}: {ex.Message}");
+                    }
+                }
+
+                if (!IsStale())
+                    TryNotifyWindow(window, JsonSerializer.Serialize(new
+                    {
+                        type = "game-list",
+                        path = minecraftPath,
+                        games
+                    }));
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[WARN] 跳过游戏 {versionId}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[WARN] 扫描游戏失败: {ex.Message}");
+                if (!IsStale())
+                    TryNotifyWindow(window, JsonSerializer.Serialize(new
+                    {
+                        type = "game-list",
+                        path = minecraftPath,
+                        games = Array.Empty<object>()
+                    }));
             }
-        }
-
-        window.SendWebMessage(JsonSerializer.Serialize(new
-        {
-            type = "game-list",
-            path = minecraftPath,
-            games
-        }));
+        });
     }
 
     /// <summary>
@@ -98,7 +125,7 @@ partial class Program
                     type = "game-path-selected",
                     path = results[0]
                 });
-                window.Invoke(() => window.SendWebMessage(message));
+                TryNotifyWindow(window, message);
             }
         }
         catch (Exception ex)
@@ -108,7 +135,7 @@ partial class Program
                 type = "game-error",
                 message = ex.Message
             });
-            window.Invoke(() => window.SendWebMessage(message));
+            TryNotifyWindow(window, message);
         }
     }
 }

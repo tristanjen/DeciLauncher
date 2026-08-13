@@ -31,12 +31,12 @@ onMounted(() => {
 onUnmounted(() => { unsub?.() })
 
 /**
- * 向 C# 后端发起游戏版本扫描
+ * 向 C# 后端发起游戏版本扫描。
+ * 保留当前选中项：刷新后若该版本仍存在则继续选中（App.vue 的 game-list 处理器负责回退）
  */
 function scanGames() {
   scanningGames.value = true
   games.value = []
-  selectedGame.value = ''
   sendNative('scan-games', { path: gamePath.value })
 }
 

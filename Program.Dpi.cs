@@ -18,7 +18,7 @@ partial class Program
     /// <param name="scale">DPI 缩放比例（1.0 = 100%, 1.25 = 125%）</param>
     /// <returns>缩放后的 (宽度, 高度)</returns>
     private static (int w, int h) GetScaledSize(float scale) =>
-        ((int)(BaseWindowWidth * scale), (int)(BaseWindowHeight * scale));
+        ((int)Math.Round(BaseWindowWidth * scale), (int)Math.Round(BaseWindowHeight * scale));
 
     // ===== 跨平台 DPI 缩放率检测 =====
 

@@ -11,7 +11,10 @@ onMounted(async () => {
     javaList.value = (payload.javas as { path: string; version: string }[]) ?? []
     scanning.value = false
     hasScanned.value = true
-    if (javaList.value.length > 0) {
+    // 仅在当前选择失效时回退：持久化的路径仍存在则保留，否则回退自动选择/清空
+    if (javaList.value.length === 0) {
+      selectedJava.value = ''
+    } else if (!javaList.value.some(j => j.path === selectedJava.value)) {
       selectedJava.value = '__auto__'
     }
   })

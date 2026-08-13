@@ -16,9 +16,12 @@ const emit = defineEmits<{
   'update:modelValue': [value: number]
 }>()
 
-// 滑块背景渐变（绿色填充 / 灰色剩余）
+// 滑块背景渐变（绿色填充 / 灰色剩余），百分比 clamp 到 [0, 100] 防御越界值
+const fillPercent = computed(() =>
+  Math.min(100, Math.max(0, ((props.modelValue - props.min) / (props.max - props.min)) * 100))
+)
 const sliderBg = computed(() =>
-  `linear-gradient(to right, #B7EB8F ${((props.modelValue - props.min) / (props.max - props.min)) * 100}%, #e5e5e5 ${((props.modelValue - props.min) / (props.max - props.min)) * 100}%)`
+  `linear-gradient(to right, #B7EB8F ${fillPercent.value}%, #e5e5e5 ${fillPercent.value}%)`
 )
 </script>
 

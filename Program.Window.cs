@@ -12,10 +12,6 @@ partial class Program
     // ===== 拖拽状态 =====
     // 窗口 X 坐标追踪（用于 macOS/Linux 手动拖拽）
     private static double DragX = 0, DragY = 0;
-    // 窗口初始化完成标记（防止 LocationChanged 在构造期间触发 resize）
-    private static bool WindowReady = false;
-    // 正在缩放标记（防止 SetSize 触发的 LocationChanged 形成递归重入）
-    private static bool IsResizing = false;
 
     /// <summary>
     /// 构建并配置 Photino 窗口（chromeless、无边框、DPI 自适应）
@@ -79,7 +75,6 @@ partial class Program
                     SetWindowPos(hWnd, 0, 0, 0, 0, 0,
                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
                 }
-                ((PhotinoWindow)sender!).Invoke(() => WindowReady = true);
             })
             // 前端 Web 消息接收处理器
             .RegisterWebMessageReceivedHandler((object? sender, string message) =>
@@ -138,6 +133,10 @@ partial class Program
                     // ---- 关闭窗口 ----
                     if (type == "close")
                     {
+                        // 先关闭正在运行的游戏并取消进行中的启动，再销毁窗口，
+                        // 避免游戏进程残留以及销毁后异步回调继续调用窗口 API
+                        CloseGame(window);
+                        LaunchCts.Cancel();
                         window.Close();
                         return;
                     }

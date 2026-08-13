@@ -57,8 +57,7 @@
     <ItemGroup>
         <!-- 从程序集内嵌资源中提供静态文件（Photino 内嵌静态文件服务器依赖） -->
         <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.10" />
-        <!-- 控制台日志记录（仅 DEBUG 模式启用） -->
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.10" />
+        <!-- 控制台日志记录：.NET 10 框架自带 Microsoft.Extensions.Logging.Console，无需单独引用 -->
         <!-- Minecraft 启动核心库（Mojang 账户认证 + 版本安装 + 启动） -->
         <PackageReference Include="MinecraftLaunch" Version="4.0.7" />
         <!-- Photino 桌面窗口框架（WebView2 / WebKit 跨平台封装） -->

@@ -61,6 +61,14 @@ partial class Program
         string appUrl;
         if (IsDebugMode)
         {
+            // 先探测 Vite 开发服务器是否可达，避免窗口白屏且无任何提示
+            if (!IsLocalServerReachable("http://localhost:5173"))
+            {
+                ShowFatalError(
+                    "无法连接前端开发服务器 (http://localhost:5173)。\n\n" +
+                    "请先在 UserInterface 目录运行 pnpm dev 后重新启动。");
+                return;
+            }
             appUrl = "http://localhost:5173";
         }
         else
@@ -109,6 +117,23 @@ partial class Program
 
         // 阻塞主线程，等待窗口关闭（进入消息循环）
         window.WaitForClose();
+    }
+
+    /// <summary>
+    /// 探测本地 HTTP 服务器是否可达（DEBUG 模式下检查 Vite 开发服务器）
+    /// </summary>
+    private static bool IsLocalServerReachable(string url)
+    {
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+            using var response = client.GetAsync(url).GetAwaiter().GetResult();
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

@@ -62,7 +62,8 @@ partial class Program
     }
 
     /// <summary>
-    /// 迁移旧 Config/accounts.json 到新位置
+    /// 迁移旧 Config/accounts.json 到新位置。
+    /// 迁移前按 UUID 去重：即使 File.Delete 失败导致下次启动重复迁移，也不会产生重复条目
     /// </summary>
     private static void MigrateOldAccounts()
     {
@@ -79,11 +80,20 @@ partial class Program
                 var name = obj.TryGetProperty("displayName", out var n) ? n.GetString() : null;
                 var uuid = obj.TryGetProperty("uuid", out var u) ? u.GetString() : null;
                 var type = obj.TryGetProperty("type", out var t) ? t.GetString() ?? "offline" : "offline";
-                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(uuid))
+                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(uuid) &&
+                    !Accounts.Any(a => a.Uuid == uuid))
                     Accounts.Add(new AccountEntry(name, uuid, type, "steve"));
             }
             SaveAccounts();
-            File.Delete(oldPath);
+            try
+            {
+                File.Delete(oldPath);
+            }
+            catch (Exception delEx)
+            {
+                // 删除失败不致命：下次启动的重复迁移会被上面的 UUID 去重挡住
+                System.Diagnostics.Debug.WriteLine($"[WARN] 旧账户文件删除失败: {delEx.Message}");
+            }
         }
         catch (Exception ex)
         {
@@ -119,7 +129,7 @@ partial class Program
 
             if (Accounts.Any(a => a.Uuid == uuid))
             {
-                window.SendWebMessage(JsonSerializer.Serialize(new { type = "account-error", message = $"账户 {account.Name} 已存在" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "account-error", message = $"账户 {account.Name} 已存在" }));
                 return;
             }
 
@@ -131,7 +141,7 @@ partial class Program
         }
         catch (Exception ex)
         {
-            window.SendWebMessage(JsonSerializer.Serialize(new { type = "account-error", message = ex.Message }));
+            TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "account-error", message = ex.Message }));
         }
     }
 
@@ -148,7 +158,7 @@ partial class Program
 
     private static void SendAccountList(PhotinoWindow window)
     {
-        window.SendWebMessage(JsonSerializer.Serialize(new
+        TryNotifyWindow(window, JsonSerializer.Serialize(new
         {
             type = "account-list",
             accounts = Accounts.Select(a => new
@@ -162,10 +172,30 @@ partial class Program
     }
 
     /// <summary>
-    /// 初始化账户模块（在应用启动时调用一次）
+    /// 初始化账户模块（在应用启动时调用一次）：
+    /// 加载账户列表，并预热离线账户的认证缓存，
+    /// 避免每次启动游戏时重新 Authenticate（保证与注释承诺的行为一致）
     /// </summary>
     private static void InitializeAccounts()
     {
         LoadAccounts();
+
+        // 预热缓存：仅 offline 类型可离线认证；其他类型（Microsoft/Yggdrasil）留待后续支持时处理
+        foreach (var entry in Accounts)
+        {
+            if (entry.Type != "offline" || AuthenticatedAccounts.ContainsKey(entry.Uuid))
+                continue;
+            try
+            {
+                var account = new OfflineAuthenticator().Authenticate(entry.Username);
+                // 防御：仅当确定性算法产出的 UUID 与存储一致时才缓存，避免启动时用到不一致的 UUID
+                if (string.Equals(account.Uuid.ToString(), entry.Uuid, StringComparison.OrdinalIgnoreCase))
+                    AuthenticatedAccounts[entry.Uuid] = account;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WARN] 账户 {entry.Username} 认证预热失败: {ex.Message}");
+            }
+        }
     }
 }

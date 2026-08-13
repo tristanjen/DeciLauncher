@@ -19,6 +19,7 @@ withDefaults(defineProps<{
         ? 'text-gray-400 hover:text-red-400'
         : 'text-gray-400 hover:text-[#52C41A]')
     ]"
+    @click.stop
   >
     <slot />
   </button>

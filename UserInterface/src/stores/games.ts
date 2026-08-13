@@ -19,10 +19,18 @@ export const gamePath = ref(
   localStorage.getItem('game-path-pref') || DEFAULT_GAME_PATH
 )
 
-// 游戏内存上限（MB），从 localStorage 恢复，默认 2048
+// 游戏内存上限（MB），从 localStorage 恢复并 clamp 到滑块范围 [512, 8192]，默认 2048
+const MIN_MEMORY = 512
+const MAX_MEMORY = 8192
+const DEFAULT_MEMORY = 2048
+
 export const maxMemory = ref(
-  parseInt(localStorage.getItem('max-memory') || '') || 2048
+  clampMemory(parseInt(localStorage.getItem('max-memory') || '') || DEFAULT_MEMORY)
 )
+
+function clampMemory(v: number): number {
+  return Math.min(MAX_MEMORY, Math.max(MIN_MEMORY, v))
+}
 
 // 当前选中的游戏版本 ID（localStorage 持久化）
 export const selectedGame = ref(localStorage.getItem('selected-game') || '')

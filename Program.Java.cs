@@ -36,7 +36,7 @@ partial class Program
                 type = "java-list",
                 javas = items
             });
-            window.Invoke(() => window.SendWebMessage(message));
+            TryNotifyWindow(window, message);
         }
         catch (Exception ex)
         {
@@ -45,7 +45,7 @@ partial class Program
                 type = "java-error",
                 message = ex.Message
             });
-            window.Invoke(() => window.SendWebMessage(message));
+            TryNotifyWindow(window, message);
         }
     }
 

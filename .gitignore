@@ -29,3 +29,6 @@ UserInterface/vite.config.ts.timestamp-*.mjs
 
 # TypeScript build info
 UserInterface/*.tsbuildinfo
+
+# Reasonix session metadata
+.reasonix/

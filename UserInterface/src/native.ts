@@ -36,13 +36,16 @@ function dispatch(message: string) {
 // Windows: WebView2 — C# SendWebMessage → PostWebMessageAsString → chrome.webview message 事件
 // 兜底：仅注册 receiveMessage（非 Windows 平台）。避免同时绑定两种机制导致双重分发。
 const w: Record<string, unknown> = window as unknown as Record<string, unknown>
-if (w.chrome && typeof w.chrome === 'object') {
-  const c = w.chrome as Record<string, unknown>
-  if (c.webview) {
-    ;(c.webview as EventTarget).addEventListener('message', (e: Event) => {
-      dispatch((e as MessageEvent).data as string)
-    })
-  }
+const chromeObj = (w.chrome && typeof w.chrome === 'object') ? w.chrome as Record<string, unknown> : null
+const externalObj = (w.external && typeof w.external === 'object') ? w.external as Record<string, unknown> : null
+
+if (chromeObj?.webview) {
+  ;(chromeObj.webview as EventTarget).addEventListener('message', (e: Event) => {
+    dispatch((e as MessageEvent).data as string)
+  })
+} else if (externalObj) {
+  // 运行时防御：window.external 可能不存在（旧版 WebView2 运行时）
+  externalObj.receiveMessage = dispatch
 } else {
-  window.external.receiveMessage = dispatch
+  console.warn('[native] 无法注册消息接收通道：window.external 与 chrome.webview 均不存在')
 }
