@@ -3,6 +3,8 @@ using System.Reflection;
 // ASP.NET Core 最小化 API（Release 模式提供内嵌静态文件）
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+// 访问控制中间件（CookieOptions / StatusCodes / SameSiteMode 均在 Microsoft.AspNetCore.Http）
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 // 日志记录（仅 DEBUG 模式启用）
 using Microsoft.Extensions.Logging;
@@ -86,8 +88,38 @@ partial class Program
                 builder.Environment.WebRootFileProvider = embeddedProvider;
             }
 
-            builder.WebHost.UseUrls("http://localhost:8000");
+            // 安全：仅绑定 IPv4 回环地址，默认随机端口（0 = 由 Kestrel 自动分配），
+            // 防止此前固定 8000 端口被同机其他程序/浏览器直接访问。
+            // DECILAUNCHER_PORT / DECILAUNCHER_TOKEN 环境变量仅供 CI 与诊断固定取值
+            var port = ReadConfiguredPort();
+            var accessToken = ReadConfiguredToken();
+
+            builder.WebHost.UseUrls($"http://127.0.0.1:{port}");
             var app = builder.Build();
+
+            // 访问控制中间件：首次导航必须携带 token（query 参数），校验通过后
+            // 下发 HttpOnly 会话 cookie，后续静态资源请求凭 cookie 通过；
+            // 无凭据请求一律 404（不泄露服务存在性），阻止本机任意程序直接访问前端
+            app.Use(async (context, next) =>
+            {
+                var token = context.Request.Query["token"].ToString();
+                if (token == accessToken)
+                {
+                    context.Response.Cookies.Append(AccessCookieName, accessToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        SameSite = SameSiteMode.Strict
+                    });
+                    await next();
+                    return;
+                }
+                if (context.Request.Cookies[AccessCookieName] == accessToken)
+                {
+                    await next();
+                    return;
+                }
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+            });
             app.UseDefaultFiles();
             app.UseStaticFiles(new StaticFileOptions { DefaultContentType = "text/plain" });
             try
@@ -98,10 +130,19 @@ partial class Program
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[FATAL] Web 服务器启动失败: {ex}");
-                ShowFatalError($"无法在端口 8000 启动本地服务器，请确认端口未被占用。\n\n{ex.Message}");
+                ShowFatalError($"无法在 127.0.0.1:{port} 启动本地服务器，请确认端口未被占用。\n\n{ex.Message}");
                 return;
             }
-            appUrl = "http://localhost:8000/index.html";
+
+            // 随机端口模式下从 Kestrel 读取实际绑定地址（port=0 时此处为已分配的真实端口）
+            var boundUrl = app.Urls.FirstOrDefault(u =>
+                u.StartsWith("http://127.0.0.1", StringComparison.Ordinal));
+            if (boundUrl == null)
+            {
+                ShowFatalError("无法获取本地服务器的实际绑定地址。");
+                return;
+            }
+            appUrl = $"{boundUrl}/index.html?token={accessToken}";
         }
 
         // 获取系统 DPI 缩放比例
@@ -117,6 +158,27 @@ partial class Program
 
         // 阻塞主线程，等待窗口关闭（进入消息循环）
         window.WaitForClose();
+    }
+
+    // 访问控制会话 cookie 名称（token 校验通过后下发，静态资源请求凭此通过）
+    private const string AccessCookieName = "DeciLauncherAccess";
+
+    /// <summary>
+    /// 从环境变量读取端口：默认 0（随机端口）；DECILAUNCHER_PORT 供 CI/诊断固定端口
+    /// </summary>
+    private static int ReadConfiguredPort()
+    {
+        var raw = Environment.GetEnvironmentVariable("DECILAUNCHER_PORT");
+        return int.TryParse(raw, out var port) && port is >= 0 and <= 65535 ? port : 0;
+    }
+
+    /// <summary>
+    /// 从环境变量读取访问 token：默认每次启动随机生成；DECILAUNCHER_TOKEN 供 CI/诊断固定 token
+    /// </summary>
+    private static string ReadConfiguredToken()
+    {
+        var token = Environment.GetEnvironmentVariable("DECILAUNCHER_TOKEN");
+        return string.IsNullOrEmpty(token) ? Guid.NewGuid().ToString("N") : token;
     }
 
     /// <summary>
