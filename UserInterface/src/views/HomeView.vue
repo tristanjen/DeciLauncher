@@ -52,8 +52,8 @@ function cancelLaunch() {
  */
 const buttonText = computed(() => {
   if (launching.value) return t('home.launching')
-  if (gameRunning.value) return t('home.closeGame')
-  return t('home.launchGame')
+  if (gameRunning.value) return t('home.closeInstance')
+  return t('home.launchInstance')
 })
 </script>
 
@@ -65,7 +65,7 @@ const buttonText = computed(() => {
     <div class="flex items-end justify-between">
       <!-- 左下：当前选中的游戏版本 -->
       <span class="text-3xl font-medium">
-        {{ currentGame ? currentGame.id : t('home.noGameSelected') }}
+        {{ currentGame ? currentGame.id : t('home.noInstanceSelected') }}
       </span>
       <!-- 右下：取消/启动/关闭游戏按钮 -->
       <div class="flex items-center gap-2 ml-auto">

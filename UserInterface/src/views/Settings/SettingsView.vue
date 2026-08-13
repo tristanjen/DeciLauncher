@@ -18,7 +18,7 @@ onMounted(async () => {
   <div class="flex gap-3">
     <Transition name="sidebar-slide">
       <Card v-if="sidebarVisible" hover-shadow class="flex flex-col gap-2 w-50">
-        <NavLink to="/settings/gameSettings" :label="t('settings.gameSettings')" size="sidebar" />
+        <NavLink to="/settings/gameSettings" :label="t('settings.instanceSettings')" size="sidebar" />
         <NavLink to="/settings/LauncherSettings" :label="t('settings.launcherSettings')" size="sidebar" />
         <NavLink to="/settings/about" :label="t('settings.about')" size="sidebar" />
       </Card>

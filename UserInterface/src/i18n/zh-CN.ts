@@ -17,19 +17,19 @@ export const zhCN: Record<string, string> = {
   'nav.settings': '设置',
 
   // 主页
-  'home.noGameSelected': '未选择游戏',
+  'home.noInstanceSelected': '未选择实例',
   'home.launching': '启动中...',
-  'home.closeGame': '关闭游戏',
-  'home.launchGame': '启动游戏',
+  'home.closeInstance': '关闭游戏',
+  'home.launchInstance': '启动游戏',
 
   // 游戏页
-  'games.directory': '游戏目录：{path}',
+  'games.directory': '实例目录：{path}',
   'games.browse': '浏览',
   'games.vanilla': '原版',
   'games.modded': '可安装模组',
   'games.minecraft': 'Minecraft {version}',
-  'games.noneFound': '未找到已安装的游戏',
-'games.switchLocked': '游戏启动或运行中，无法切换版本',
+  'games.noneFound': '未找到已安装的实例',
+  'games.switchLocked': '无法在游戏启动或运行期间切换实例',
 
   // 账户页
   'accounts.createOffline': '创建离线账户',
@@ -44,7 +44,7 @@ export const zhCN: Record<string, string> = {
   'accounts.copied': '已复制到剪贴板',
 
   // 设置页
-  'settings.gameSettings': '游戏设置',
+  'settings.instanceSettings': '游戏设置',
   'settings.launcherSettings': '启动器设置',
   'settings.about': '关于',
   'settings.javaRuntime': 'Java 运行时',
@@ -54,7 +54,7 @@ export const zhCN: Record<string, string> = {
   'settings.noJavaFound': '没有找到 Java 运行时',
   'settings.notScannedYet': '还没有扫描哦~',
   'settings.unknown': 'Unknown',
-  'settings.gameMemory': '游戏内存',
+  'settings.instanceMemory': '游戏内存',
   'settings.gb': 'GB',
   'settings.mb': 'MB',
   'settings.language': '语言',

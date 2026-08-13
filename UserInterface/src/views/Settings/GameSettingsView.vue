@@ -64,7 +64,7 @@ watch(maxMemory, (val) => {
     </div>
     <!-- 游戏内存行 -->
     <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium">{{ t('settings.gameMemory') }}</span>
+      <span class="text-sm font-medium">{{ t('settings.instanceMemory') }}</span>
       <div class="flex items-center gap-3">
         <RangeSlider v-model="maxMemory" />
         <span class="text-sm text-gray-700 w-16 text-right shrink-0">

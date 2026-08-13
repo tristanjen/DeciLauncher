@@ -17,19 +17,19 @@ export const enUS: Record<string, string> = {
   'nav.settings': 'Settings',
 
   // Home
-  'home.noGameSelected': 'No game selected',
+  'home.noInstanceSelected': 'No instance selected',
   'home.launching': 'Launching...',
-  'home.closeGame': 'Close game',
-  'home.launchGame': 'Launch game',
+  'home.closeInstance': 'Close game',
+  'home.launchInstance': 'Launch game',
 
   // Games
-  'games.directory': 'Game directory: {path}',
+  'games.directory': 'Instance directory: {path}',
   'games.browse': 'Browse',
   'games.vanilla': 'Vanilla',
   'games.modded': 'Modded',
   'games.minecraft': 'Minecraft {version}',
-  'games.noneFound': 'No installed games found',
-'games.switchLocked': 'Cannot switch versions while a game is launching or running',
+  'games.noneFound': 'No installed instances found',
+  'games.switchLocked': 'Cannot switch instances while a game is launching or running',
 
   // Accounts
   'accounts.createOffline': 'Create offline account',
@@ -44,7 +44,7 @@ export const enUS: Record<string, string> = {
   'accounts.copied': 'Copied to clipboard',
 
   // Settings
-  'settings.gameSettings': 'Game settings',
+  'settings.instanceSettings': 'Game settings',
   'settings.launcherSettings': 'Launcher settings',
   'settings.about': 'About',
   'settings.javaRuntime': 'Java runtime',
@@ -54,7 +54,7 @@ export const enUS: Record<string, string> = {
   'settings.noJavaFound': 'No Java runtime found',
   'settings.notScannedYet': 'Not scanned yet',
   'settings.unknown': 'Unknown',
-  'settings.gameMemory': 'Game memory',
+  'settings.instanceMemory': 'Game memory',
   'settings.gb': 'GB',
   'settings.mb': 'MB',
   'settings.language': 'Language',
