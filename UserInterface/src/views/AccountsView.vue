@@ -133,7 +133,7 @@ function typeColor(type: string): string {
           <!-- 用户名 -->
           <span class="text-sm">{{ a.username }}</span>
           <!-- 账户类型标签 -->
-          <span class="text-xs ml-2" :class="typeColor(a.type)">{{ typeLabel(a.type) }}</span>
+          <span class="text-xs ml-2 leading-none" :class="typeColor(a.type)">{{ typeLabel(a.type) }}</span>
           <!-- 复制 UUID 按钮 -->
           <IconButton class="ml-auto" variant="list" @click="copyUuid(a.uuid)">
             <svg class="size-3" viewBox="0 0 12 12">

@@ -1,8 +1,8 @@
 // 国际化语言状态 — localStorage 持久化 + 系统语言检测 + 轻量翻译函数
 // 与 selected-game / selected-account / max-memory 等采用相同的 localStorage 模式
 import { ref, watch } from 'vue'
-import { zhCN } from '../locales/zh-CN'
-import { enUS } from '../locales/en-US'
+import { zhCN } from '../i18n/zh-CN'
+import { enUS } from '../i18n/en-US'
 
 export type Locale = 'zh-CN' | 'en-US'
 
