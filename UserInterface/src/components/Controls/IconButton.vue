@@ -10,7 +10,7 @@ withDefaults(defineProps<{
 
 <template>
   <button
-    class="flex items-center justify-center rounded transition duration-150"
+    class="flex items-center justify-center rounded-lg transition duration-150"
     :class="[
       variant === 'titlebar'
         ? 'size-8 ease-out hover:bg-[#B7EB8F] active:bg-[#95DE64] active:scale-90'

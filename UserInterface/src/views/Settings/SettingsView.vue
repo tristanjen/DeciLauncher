@@ -31,7 +31,7 @@ onMounted(async () => {
 
 <style scoped>
 .sidebar-slide-enter-active {
-  animation: sidebar-bounce 0.3s cubic-bezier(0, 1.2, 0.58, 1);
+  animation: sidebar-bounce 0.3s cubic-bezier(0, 1.15, 0.58, 1);
 }
 
 .sidebar-slide-enter-from {
