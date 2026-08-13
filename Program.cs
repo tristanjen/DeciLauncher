@@ -99,7 +99,8 @@ partial class Program
 
             // 访问控制中间件：首次导航必须携带 token（query 参数），校验通过后
             // 下发 HttpOnly 会话 cookie，后续静态资源请求凭 cookie 通过；
-            // 无凭据请求一律 404（不泄露服务存在性），阻止本机任意程序直接访问前端
+            // 无凭据请求一律 404（不泄露服务存在性），阻止本机任意程序直接访问前端。
+            // Referrer-Policy: no-referrer 防止 token 随 Referer 头泄露到任何外部站点
             app.Use(async (context, next) =>
             {
                 var token = context.Request.Query["token"].ToString();
@@ -110,11 +111,13 @@ partial class Program
                         HttpOnly = true,
                         SameSite = SameSiteMode.Strict
                     });
+                    context.Response.Headers["Referrer-Policy"] = "no-referrer";
                     await next();
                     return;
                 }
                 if (context.Request.Cookies[AccessCookieName] == accessToken)
                 {
+                    context.Response.Headers["Referrer-Policy"] = "no-referrer";
                     await next();
                     return;
                 }
