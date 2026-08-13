@@ -5,6 +5,8 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { sendNative, onNativeMessage } from '../native'
 // 全局共享状态（游戏列表，App.vue 启动时已扫描）
 import { games, scanningGames, gamePath, selectedGame } from '../stores/store'
+// 启动状态（锁定切换）与提示
+import { launching, gameRunning, toast } from '../stores/store'
 // 自定义控件
 import DefaultButton from '../components/Controls/DefaultButton.vue'
 import RadioItem from '../components/Controls/RadioItem.vue'
@@ -16,6 +18,9 @@ import { t } from '../stores/locale'
 const vanillaGames = computed(() => games.value.filter(g => g.isVanilla))
 // 模组游戏（isVanilla = false）
 const moddedGames = computed(() => games.value.filter(g => !g.isVanilla))
+
+// 游戏启动或运行期间锁定版本切换（启动中的目标版本不可中途变更）
+const switchLocked = computed(() => launching.value || gameRunning.value)
 
 let unsub: (() => void) | undefined
 
@@ -50,9 +55,14 @@ function pickGamePath() {
 }
 
 /**
- * 选中游戏版本（不可取消，必须有一个条目被选中）
+ * 选中游戏版本（不可取消，必须有一个条目被选中）。
+ * 游戏启动或运行期间锁定：拒绝切换并提示原因
  */
 function toggleGame(id: string) {
+  if (switchLocked.value) {
+    toast.value = t('games.switchLocked')
+    return
+  }
   selectedGame.value = id
 }
 </script>
@@ -82,6 +92,7 @@ function toggleGame(id: string) {
           <span class="text-xs text-[#333] font-medium">{{ t('games.vanilla') }}</span>
           <div v-for="g in vanillaGames" :key="g.id"
             class="flex items-center cursor-pointer"
+            :class="switchLocked ? 'opacity-40 cursor-not-allowed' : ''"
             @click="toggleGame(g.id)">
             <RadioItem :selected="selectedGame === g.id" />
             <div class="flex flex-col">
@@ -95,6 +106,7 @@ function toggleGame(id: string) {
           <span class="text-xs text-[#333] font-medium">{{ t('games.modded') }}</span>
           <div v-for="g in moddedGames" :key="g.id"
             class="flex items-center cursor-pointer"
+            :class="switchLocked ? 'opacity-40 cursor-not-allowed' : ''"
             @click="toggleGame(g.id)">
             <RadioItem :selected="selectedGame === g.id" />
             <div class="flex flex-col">

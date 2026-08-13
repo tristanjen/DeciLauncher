@@ -29,6 +29,7 @@ export const zhCN: Record<string, string> = {
   'games.modded': '可安装模组',
   'games.minecraft': 'Minecraft {version}',
   'games.noneFound': '未找到已安装的游戏',
+'games.switchLocked': '游戏启动或运行中，无法切换版本',
 
   // 账户页
   'accounts.createOffline': '创建离线账户',

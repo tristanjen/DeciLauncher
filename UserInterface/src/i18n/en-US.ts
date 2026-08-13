@@ -29,6 +29,7 @@ export const enUS: Record<string, string> = {
   'games.modded': 'Modded',
   'games.minecraft': 'Minecraft {version}',
   'games.noneFound': 'No installed games found',
+'games.switchLocked': 'Cannot switch versions while a game is launching or running',
 
   // Accounts
   'accounts.createOffline': 'Create offline account',
