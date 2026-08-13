@@ -5,6 +5,8 @@ using MinecraftLaunch.Components.Parser;
 using MinecraftLaunch.Launch;
 // 游戏/Java 数据模型
 using MinecraftLaunch.Base.Models.Game;
+// Account 类型（认证缓存）
+using MinecraftLaunch.Base.Models.Authentication;
 // Java 自动检测 + 版本匹配
 using MinecraftLaunch.Extensions;
 using MinecraftLaunch.Utilities;
@@ -29,13 +31,29 @@ partial class Program
     /// 当前启动任务的取消令牌（支持在 RunAsync 期间取消）
     /// </summary>
     private static CancellationTokenSource LaunchCts = new();
+    /// <summary>
+    /// 启动防重入标志：1 = 有启动流程在执行。
+    /// Interlocked 检查-设置，覆盖「RunningProcess 检查」与「RunAsync 赋值」之间的 await 窗口
+    /// </summary>
+    private static int LaunchActive;
+    /// <summary>
+    /// 启动代次：每次 launch-game 递增。迟到的异步回调（取消异常、轮询任务）
+    /// 仅在代次仍为当前值时通知前端，避免复位下一次启动的 UI 状态
+    /// </summary>
+    private static int LaunchGeneration;
 
     /// <summary>
-    /// 关闭正在运行的游戏（同时供 CancelLaunch 复用）
+    /// 关闭正在运行的游戏（同时供 CancelLaunch 复用）。
+    /// 即使后端已无进程引用也回发 game-exited：前端状态可能因消息乱序
+    /// （game-launched 晚于 game-exited 到达）而失配，需要一条复位消息恢复
     /// </summary>
     private static void CloseGame(PhotinoWindow window)
     {
-        if (RunningProcess == null) return;
+        if (RunningProcess == null)
+        {
+            TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
+            return;
+        }
         try
         {
             RunningProcess.Close();
@@ -55,11 +73,20 @@ partial class Program
     private static void CancelLaunch(PhotinoWindow window)
     {
         // 捕获当前 CTS 局部引用再取消，避免与下一次启动重建的 LaunchCts 产生竞态
-        var cts = LaunchCts;
+        var cts = Volatile.Read(ref LaunchCts);
         cts.Cancel();
-        CloseGame(window);
-        // 启动尚未完成（RunningProcess 为空）时 CloseGame 直接返回，仍需通知前端复位状态
-        if (RunningProcess == null)
+
+        if (RunningProcess != null)
+        {
+            // 已有进程在运行：关闭并复位前端
+            CloseGame(window);
+            return;
+        }
+
+        // 无运行进程：
+        // - 有进行中的启动任务时，其取消路径（CleanupCancelled）会按代次发送 game-exited，此处不再发送，避免双发；
+        // - 无进行中任务（LaunchActive == 0）说明前端状态失配（如复位消息丢失），补发一条复位消息
+        if (Volatile.Read(ref LaunchActive) == 0)
             TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
     }
 
@@ -72,6 +99,16 @@ partial class Program
         string javaPath, int maxMemory,
         string minecraftPath)
     {
+        // 防重入：检查-设置原子完成，覆盖「RunningProcess 检查」与「RunAsync 赋值」之间的 await 窗口，
+        // 两条并发的 launch-game 消息只有第一条能进入启动流程
+        if (Interlocked.CompareExchange(ref LaunchActive, 1, 0) != 0)
+        {
+            TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("已有游戏正在启动", "A game is already launching") }));
+            return;
+        }
+        // 本次启动的代次：迟到的取消回调/轮询任务仅在仍是当前代次时通知前端
+        var generation = Interlocked.Increment(ref LaunchGeneration);
+        bool IsCurrent() => generation == Volatile.Read(ref LaunchGeneration);
         try
         {
             System.Diagnostics.Debug.WriteLine($"[Launch] 游戏: {gameId}");
@@ -87,26 +124,32 @@ partial class Program
                 return;
             }
 
-            // 重建取消令牌（上次启动可能已取消）
-            LaunchCts = new CancellationTokenSource();
-            var launchToken = LaunchCts.Token;
+            // 重建取消令牌（上次启动可能已取消；Volatile 保证与 CancelLaunch/close 处理器的可见性）
+            Volatile.Write(ref LaunchCts, new CancellationTokenSource());
+            var launchToken = Volatile.Read(ref LaunchCts).Token;
 
             if (maxMemory < 512) maxMemory = 512;
             if (maxMemory > 16384) maxMemory = 16384;
 
-            // 1. 查找账户（优先使用缓存，避免每次重新 Authenticate 导致 UUID 不一致）
-            var accountEntry = Accounts.FirstOrDefault(a => a.Uuid == accountUuid);
+            // 1. 查找账户（锁内读取，避免与账户删除并发破坏列表/字典；优先使用缓存，避免每次重新 Authenticate 导致 UUID 不一致。
+            // 消息发送移到锁外，避免持锁等待 UI 线程）
+            AccountEntry? accountEntry;
+            Account? account = null;
+            lock (AccountsLock)
+            {
+                accountEntry = Accounts.FirstOrDefault(a => a.Uuid == accountUuid);
+                if (accountEntry != null && !AuthenticatedAccounts.TryGetValue(accountEntry.Uuid, out account))
+                {
+                    account = new OfflineAuthenticator().Authenticate(accountEntry.Username);
+                    AuthenticatedAccounts[accountEntry.Uuid] = account;
+                }
+            }
             if (accountEntry == null)
             {
                 TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("未找到选中的账户", "Selected account not found") }));
                 return;
             }
-            if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null); return; }
-            if (!AuthenticatedAccounts.TryGetValue(accountEntry.Uuid, out var account))
-            {
-                account = new OfflineAuthenticator().Authenticate(accountEntry.Username);
-                AuthenticatedAccounts[accountEntry.Uuid] = account;
-            }
+            if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null, generation); return; }
 
             // 2. 解析游戏版本
             var parser = new MinecraftParser(minecraftPath);
@@ -116,11 +159,11 @@ partial class Program
                 TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("未找到选中的游戏版本", "Selected game version not found") }));
                 return;
             }
-            if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null); return; }
+            if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null, generation); return; }
 
             // 3. 查找 Java 运行时（后台线程执行，避免阻塞 UI）
             var javas = await Task.Run(() => JavaUtil.EnumerableJavaAsync().ToBlockingEnumerable().ToList(), launchToken);
-            if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null); return; }
+            if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null, generation); return; }
             MinecraftLaunch.Base.Models.Game.JavaEntry? java = javaPath switch
             {
                 "__auto__" or "" => game.GetAppropriateJava(javas),
@@ -163,7 +206,7 @@ partial class Program
             catch (OperationCanceledException)
             {
                 System.Diagnostics.Debug.WriteLine("[Launch] 启动已取消");
-                CleanupCancelled(window, null);
+                CleanupCancelled(window, null, generation);
                 return;
             }
             catch (Exception rex)
@@ -174,7 +217,7 @@ partial class Program
             }
             if (launchToken.IsCancellationRequested)
             {
-                CleanupCancelled(window, RunningProcess);
+                CleanupCancelled(window, RunningProcess, generation);
                 return;
             }
 
@@ -223,7 +266,7 @@ partial class Program
                     };
                     var procProp = typeof(MinecraftProcess).GetProperty("Process");
                     procProp?.SetValue(RunningProcess, proc);
-                    if (launchToken.IsCancellationRequested) { CleanupCancelled(window, RunningProcess); return; }
+                    if (launchToken.IsCancellationRequested) { CleanupCancelled(window, RunningProcess, generation); return; }
                     RunningProcess.Start();
                 }
                 catch (Exception ex)
@@ -265,15 +308,21 @@ partial class Program
                         };
 
                         // 手动绑定退出事件（MinecraftProcess 内置回调在构造器提前 return 后未绑定）
+                        var mpRef = RunningProcess;
                         proc.Exited += (_, _) =>
                         {
                             System.Diagnostics.Debug.WriteLine("[MC] 游戏进程已退出（fallback 路径）");
                             proc.Dispose();
-                            RunningProcess = null;
-                            TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
+                            // 与正常路径一致：仅当仍是被跟踪的进程时才清理引用并通知前端，
+                            // 防止旧进程迟到的退出事件清掉下一次启动的进程引用
+                            if (ReferenceEquals(RunningProcess, mpRef))
+                            {
+                                RunningProcess = null;
+                                TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
+                            }
                         };
 
-                        if (launchToken.IsCancellationRequested) { CleanupCancelled(window, RunningProcess); return; }
+                        if (launchToken.IsCancellationRequested) { CleanupCancelled(window, RunningProcess, generation); return; }
                         // MinecraftProcess.Start() 内部已执行 Process.Start() + BeginOutputReadLine/BeginErrorReadLine，
                         // 此处不得重复调用（否则抛 async read already started）
                         RunningProcess.Start();
@@ -298,8 +347,14 @@ partial class Program
             {
                 System.Diagnostics.Debug.WriteLine($"[MC] 游戏进程已退出，退出码: {processRef.Process?.ExitCode}");
                 processRef?.Dispose();
-                if (RunningProcess == processRef) RunningProcess = null;
-                TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
+                // 仅当仍是被跟踪的进程时才清理引用并通知前端：
+                // 用户关闭游戏时 CloseGame 已清空引用并发送 game-exited，
+                // 迟到的退出事件不得误伤下一次启动的进程引用或重复复位
+                if (RunningProcess == processRef)
+                {
+                    RunningProcess = null;
+                    TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
+                }
             };
 
             // 轮询等待游戏窗口出现（最多 30 秒），窗口出现后才发送 game-launched
@@ -310,9 +365,10 @@ partial class Program
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     while (sw.ElapsedMilliseconds < 30_000)
                     {
-                        if (RunningProcess == null)
+                        // 本次启动已被更新的启动取代（代次变化）或进程引用已被清空时终止轮询
+                        if (!IsCurrent() || RunningProcess == null)
                         {
-                            System.Diagnostics.Debug.WriteLine("[Launch] 轮询终止: RunningProcess 已被清空");
+                            System.Diagnostics.Debug.WriteLine("[Launch] 轮询终止: 启动已被替代或 RunningProcess 已被清空");
                             return;
                         }
                         if (processRef.Process?.HasExited == true)
@@ -333,6 +389,11 @@ partial class Program
                         {
                             if (processRef.Process?.MainWindowHandle != IntPtr.Zero)
                             {
+                                if (!IsCurrent())
+                                {
+                                    System.Diagnostics.Debug.WriteLine("[Launch] 轮询终止: 窗口出现前启动已被替代");
+                                    return;
+                                }
                                 System.Diagnostics.Debug.WriteLine("[Launch] 游戏窗口已出现");
                                 TryNotifyWindow(window, "{\"type\":\"game-launched\"}");
                                 return;
@@ -341,26 +402,51 @@ partial class Program
                         catch { }
                         await Task.Delay(500);
                     }
+                    // 超时视为已启动，但发送前需确认本次启动仍是最新且进程引用未被清空，
+                    // 防止与退出事件竞态导致 game-launched 晚于 game-exited 到达前端（UI 永久卡在「运行中」）
+                    if (!IsCurrent() || RunningProcess != processRef)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[Launch] 窗口检测超时，但启动已被替代，不发送 game-launched");
+                        return;
+                    }
                     System.Diagnostics.Debug.WriteLine("[Launch] 窗口检测超时，视为已启动");
                     TryNotifyWindow(window, "{\"type\":\"game-launched\"}");
                 }
                 catch (Exception ex)
                 {
+                    // 代次守卫：启动已被替代时，迟到的轮询异常不得误报给前端
+                    if (!IsCurrent())
+                    {
+                        System.Diagnostics.Debug.WriteLine("[Launch] 轮询异常但启动已被替代，忽略");
+                        return;
+                    }
                     System.Diagnostics.Debug.WriteLine($"[Launch] 状态检查异常: {ex.Message}");
                     TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("游戏启动失败，请检查版本完整性", "Game failed to start. Please check version integrity.") }));
                 }
             });
         }
+        catch (OperationCanceledException)
+        {
+            // 取消（如 Java 枚举的 await 直接抛 OCE）不是启动失败，走取消清理路径而非报 game-error
+            System.Diagnostics.Debug.WriteLine("[Launch] 启动已取消（外层）");
+            CleanupCancelled(window, RunningProcess, generation);
+        }
         catch (Exception ex)
         {
             TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = ex.Message }));
         }
+        finally
+        {
+            // 无论成功、失败还是取消，释放防重入标志，允许下一次启动
+            Volatile.Write(ref LaunchActive, 0);
+        }
     }
 
     /// <summary>
-    /// 启动被取消后的清理：仅释放本次启动创建的进程（按引用相等判断，避免误杀下一次启动的进程）并通知前端
+    /// 启动被取消后的清理：仅释放本次启动创建的进程（按引用相等判断，避免误杀下一次启动的进程）并通知前端。
+    /// game-exited 仅在本次启动仍是当前代次时发送：迟到的取消回调不应复位下一次启动的 UI 状态
     /// </summary>
-    private static void CleanupCancelled(PhotinoWindow window, MinecraftProcess? process)
+    private static void CleanupCancelled(PhotinoWindow window, MinecraftProcess? process, int generation)
     {
         try
         {
@@ -375,7 +461,8 @@ partial class Program
         {
             System.Diagnostics.Debug.WriteLine($"[Launch] 取消清理失败: {ex.Message}");
         }
-        TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
+        if (generation == Volatile.Read(ref LaunchGeneration))
+            TryNotifyWindow(window, "{\"type\":\"game-exited\"}");
     }
 
     /// <summary>
@@ -395,11 +482,14 @@ partial class Program
         args.Add($"-Xmx{config.MaxMemorySize}M");
 
         // JVM 参数：先读继承的 vanilla 版本，再读本版本
-        if (game is ModifiedMinecraftEntry { HasInheritance: true } modded)
+        // 文件缺失时跳过该来源（损坏安装不应让整个 fallback 失败，与 ParseLibraryPaths/ExtractNativesFallback 一致）
+        if (game is ModifiedMinecraftEntry { HasInheritance: true } modded &&
+            modded.InheritedMinecraft.ClientJsonPath is { } inheritedJson && File.Exists(inheritedJson))
         {
-            ReadJvmArgs(File.ReadAllText(modded.InheritedMinecraft.ClientJsonPath), args);
+            ReadJvmArgs(File.ReadAllText(inheritedJson), args);
         }
-        ReadJvmArgs(File.ReadAllText(game.ClientJsonPath!), args);
+        if (game.ClientJsonPath is { } clientJson && File.Exists(clientJson))
+            ReadJvmArgs(File.ReadAllText(clientJson), args);
 
         // 用户自定义 JVM 参数
         if (config.JvmArguments != null)
@@ -408,17 +498,19 @@ partial class Program
         // 主类
         args.Add(root.GetProperty("mainClass").GetString()!);
 
-        // 游戏参数：先读继承版本，再读本版本
-        if (game is ModifiedMinecraftEntry { HasInheritance: true } modded2)
+        // 游戏参数：先读继承版本，再读本版本（文件缺失时跳过，同上）
+        if (game is ModifiedMinecraftEntry { HasInheritance: true } modded2 &&
+            modded2.InheritedMinecraft.ClientJsonPath is { } inheritedJson2 && File.Exists(inheritedJson2))
         {
-            ReadGameArgs(File.ReadAllText(modded2.InheritedMinecraft.ClientJsonPath), args);
+            ReadGameArgs(File.ReadAllText(inheritedJson2), args);
         }
-        ReadGameArgs(File.ReadAllText(game.ClientJsonPath!), args);
+        if (game.ClientJsonPath is { } clientJson2 && File.Exists(clientJson2))
+            ReadGameArgs(File.ReadAllText(clientJson2), args);
 
         // 替换模板变量
         var classPath = BuildClassPath(game, minecraftPath);
-        var versionName = game is ModifiedMinecraftEntry { HasInheritance: true } m
-            ? m.InheritedMinecraft.Id : game.Id;
+        // ${version_name} 与 MinecraftLaunch 一致使用当前启动的版本 Id（而非继承的 vanilla Id）
+        var versionName = game.Id;
 
         var assetIndexPath = game is ModifiedMinecraftEntry { HasInheritance: true } m2
             ? m2.InheritedMinecraft.AssetIndexJsonPath
@@ -613,8 +705,13 @@ partial class Program
     /// <summary>
     /// fallback/独立路径启动前确保 native 库已解压到 versions/<id>/natives
     /// （与 MinecraftLaunch ExtractNatives 的硬编码目标一致；幂等：已存在的文件跳过）。
-    /// 从版本 JSON（含继承版本）的 libraries 中筛选带 natives 分类的库，
-    /// 按平台匹配 classifier（natives-windows / natives-windows-x86_64 / natives-windows-arm64 等前缀）
+    /// 从版本 JSON（含继承版本）的 libraries 中筛选 natives 库，覆盖两种 Mojang 格式：
+    /// - 旧格式（&lt;1.20.5）：libraries[i].natives 对象的键是 OS 名（windows/osx/linux），
+    ///   值才是 classifier（natives-windows / natives-macos 等），文件位于 downloads.classifiers[classifier].path；
+    /// - 新格式（1.20.5+）：natives 库为独立条目，classifier 在 name 的第 4 段
+    ///   （如 org.lwjgl:lwjgl:3.3.3:natives-windows），文件位于 downloads.artifact.path。
+    /// 按当前进程架构过滤（arm64 只取 -arm64 变体），避免 x64/arm64 文件混入同一目录；
+    /// macOS 同时接受 1.13 前的 natives-osx 命名。
     /// </summary>
     private static void ExtractNativesFallback(MinecraftEntry game, string minecraftPath)
     {
@@ -624,54 +721,99 @@ partial class Program
             Directory.CreateDirectory(nativesDir);
 
             var platformPrefix = OperatingSystem.IsWindows() ? "natives-windows"
-                : OperatingSystem.IsMacOS() ? "natives-osx" : "natives-linux";
+                : OperatingSystem.IsMacOS() ? "natives-macos" : "natives-linux";
             var ext = OperatingSystem.IsWindows() ? ".dll"
                 : OperatingSystem.IsMacOS() ? ".dylib" : ".so";
+
+            // 架构后缀：优先解压与当前进程架构精确匹配的 classifier；
+            // arm64/x86 机器上老版本没有对应变体时，回退解压无后缀/x64 变体（兼容/仿真运行）
+            var archSuffix = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+            {
+                System.Runtime.InteropServices.Architecture.Arm64 => "-arm64",
+                System.Runtime.InteropServices.Architecture.X86 => "-x86",
+                _ => "" // x64 等使用无后缀 classifier（natives-windows）
+            };
+
+            bool MatchesPlatform(string classifier, bool allowX64Fallback)
+            {
+                // macOS：1.13 之前 Mojang 使用 natives-osx，之后改用 natives-macos，两者都接受
+                string? matchedPrefix = null;
+                if (classifier.StartsWith(platformPrefix, StringComparison.OrdinalIgnoreCase))
+                    matchedPrefix = platformPrefix;
+                else if (OperatingSystem.IsMacOS() &&
+                         classifier.StartsWith("natives-osx", StringComparison.OrdinalIgnoreCase))
+                    matchedPrefix = "natives-osx";
+                if (matchedPrefix == null) return false;
+
+                var rest = classifier.Substring(matchedPrefix.Length);
+                if (rest.Length == 0)
+                    return archSuffix.Length == 0 || allowX64Fallback;
+                if (rest.Equals(archSuffix, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (rest.Equals("-x64", StringComparison.OrdinalIgnoreCase) ||
+                    rest.Equals("-x86_64", StringComparison.OrdinalIgnoreCase) ||
+                    rest.Equals("-64", StringComparison.OrdinalIgnoreCase))
+                    // x86 进程无法加载 x64 变体，回退阶段也不接受
+                    return archSuffix.Length == 0 || (allowX64Fallback && archSuffix != "-x86");
+                // x86 进程兼容旧命名 natives-*-32
+                return archSuffix == "-x86" && rest.Equals("-32", StringComparison.OrdinalIgnoreCase);
+            }
 
             var jsonPaths = new List<string>();
             if (game is ModifiedMinecraftEntry { HasInheritance: true } modded)
                 jsonPaths.Add(modded.InheritedMinecraft.ClientJsonPath);
             jsonPaths.Add(game.ClientJsonPath!);
 
-            foreach (var jsonPath in jsonPaths)
+            // 严格阶段已处理（解压成功）的库 base 名（Maven 名前 3 段）。
+            // 回退决策是库粒度而非全局计数：同一版本中可能同时存在「有 arm64 变体的库」
+            // 与「仅有 x64 变体的库」（如官方 lwjgl vs 模组 natives），
+            // 全局计数会让回退阶段整体跳过，导致仅 x64 变体的库缺失 natives
+            var handledBases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 两阶段：先严格匹配当前架构；回退阶段对严格阶段未处理的库解压 x64 变体
+            foreach (var allowX64Fallback in new[] { false, true })
             {
-                if (!File.Exists(jsonPath)) continue;
-                using var json = JsonDocument.Parse(File.ReadAllText(jsonPath));
-                if (!json.RootElement.TryGetProperty("libraries", out var libs)) continue;
-
-                foreach (var lib in libs.EnumerateArray())
+                foreach (var jsonPath in jsonPaths)
                 {
-                    // 带 natives 分类键的库才含 native 文件
-                    if (!lib.TryGetProperty("natives", out var nativesObj)) continue;
+                    if (!File.Exists(jsonPath)) continue;
+                    using var json = JsonDocument.Parse(File.ReadAllText(jsonPath));
+                    if (!json.RootElement.TryGetProperty("libraries", out var libs)) continue;
 
-                    foreach (var prop in nativesObj.EnumerateObject())
+                    foreach (var lib in libs.EnumerateArray())
                     {
-                        if (!prop.Name.StartsWith(platformPrefix, StringComparison.OrdinalIgnoreCase))
-                            continue;
-                        var classifier = prop.Value.GetString();
-                        if (string.IsNullOrEmpty(classifier)) continue;
-
-                        // 从 downloads.classifiers[classifier].path 定位库文件
-                        if (!lib.TryGetProperty("downloads", out var downloads) ||
-                            !downloads.TryGetProperty("classifiers", out var classifiers) ||
-                            !classifiers.TryGetProperty(classifier, out var artifact) ||
-                            !artifact.TryGetProperty("path", out var pathProp))
+                        var libBase = GetLibBase(lib);
+                        // 严格阶段已解压同 base 的变体（如 arm64），回退阶段跳过，
+                        // 避免 x64/arm64 文件混入同一 natives 目录
+                        if (allowX64Fallback && libBase.Length > 0 && handledBases.Contains(libBase))
                             continue;
 
-                        var zipPath = Path.Combine(minecraftPath, "libraries", pathProp.GetString()!);
-                        if (!File.Exists(zipPath)) continue;
-
-                        using var zip = ZipFile.OpenRead(zipPath);
-                        foreach (var entry in zip.Entries)
+                        if (lib.TryGetProperty("natives", out var nativesObj))
                         {
-                            if (!string.Equals(Path.GetExtension(entry.FullName), ext, StringComparison.OrdinalIgnoreCase))
-                                continue;
-                            var target = Path.Combine(nativesDir, Path.GetFileName(entry.FullName));
-                            if (!File.Exists(target))
+                            // 旧格式（&lt;1.20.5）：natives 对象的键是 OS 名（windows/osx/linux），
+                            // 值才是 classifier（natives-windows 等）——按值匹配平台前缀，
+                            // 文件位于 downloads.classifiers[classifier].path
+                            foreach (var prop in nativesObj.EnumerateObject())
                             {
-                                entry.ExtractToFile(target, true);
-                                System.Diagnostics.Debug.WriteLine($"[Launch] 解压 native: {target}");
+                                var classifier = prop.Value.GetString();
+                                if (string.IsNullOrEmpty(classifier) || !MatchesPlatform(classifier, allowX64Fallback))
+                                    continue;
+                                if (ExtractFromClassifier(lib, classifier, minecraftPath, nativesDir, ext) &&
+                                    libBase.Length > 0)
+                                    handledBases.Add(libBase);
                             }
+                            continue;
+                        }
+
+                        // 新格式（1.20.5+）：natives 库为独立条目，classifier 在 name 的第 4 段
+                        // （如 org.lwjgl:lwjgl:3.3.3:natives-windows），文件位于 downloads.artifact.path
+                        if (lib.TryGetProperty("name", out var nameElem) &&
+                            nameElem.GetString() is { } mavenName)
+                        {
+                            var nameParts = mavenName.Split(':');
+                            if (nameParts.Length >= 4 && MatchesPlatform(nameParts[3], allowX64Fallback) &&
+                                ExtractFromArtifact(lib, minecraftPath, nativesDir, ext) &&
+                                libBase.Length > 0)
+                                handledBases.Add(libBase);
                         }
                     }
                 }
@@ -682,10 +824,68 @@ partial class Program
             // 解压失败不致命：游戏启动后会给出更明确的 LWJGL 错误
             System.Diagnostics.Debug.WriteLine($"[WARN] ExtractNativesFallback 失败: {ex.Message}");
         }
+
+        // 库的 base 标识：Maven 名前 3 段（去除 classifier 段），跨旧/新格式一致
+        static string GetLibBase(JsonElement lib)
+        {
+            if (lib.TryGetProperty("name", out var nameElem) &&
+                nameElem.GetString() is { } name)
+            {
+                var parts = name.Split(':');
+                return parts.Length >= 3 ? string.Join(':', parts.Take(3)) : name;
+            }
+            return "";
+        }
+
+        // 旧格式：从 downloads.classifiers[classifier].path 定位并解压
+        static bool ExtractFromClassifier(JsonElement lib, string classifier, string minecraftPath, string nativesDir, string ext)
+        {
+            if (!lib.TryGetProperty("downloads", out var downloads) ||
+                !downloads.TryGetProperty("classifiers", out var classifiers) ||
+                !classifiers.TryGetProperty(classifier, out var artifact) ||
+                !artifact.TryGetProperty("path", out var pathProp))
+                return false;
+
+            return ExtractZipToNatives(Path.Combine(minecraftPath, "libraries", pathProp.GetString()!), nativesDir, ext);
+        }
+
+        // 新格式（1.20.5+）：从 downloads.artifact.path 定位并解压
+        static bool ExtractFromArtifact(JsonElement lib, string minecraftPath, string nativesDir, string ext)
+        {
+            if (!lib.TryGetProperty("downloads", out var downloads) ||
+                !downloads.TryGetProperty("artifact", out var artifact) ||
+                !artifact.TryGetProperty("path", out var pathProp))
+                return false;
+
+            return ExtractZipToNatives(Path.Combine(minecraftPath, "libraries", pathProp.GetString()!), nativesDir, ext);
+        }
+
+        // 将 zip 中指定扩展名的文件解压到 natives 目录（幂等：已存在的文件跳过）。
+        // 返回是否实际处理了该库文件（存在即 true，用于两阶段回退的产出计数）
+        static bool ExtractZipToNatives(string zipPath, string nativesDir, string ext)
+        {
+            if (!File.Exists(zipPath)) return false;
+
+            using var zip = ZipFile.OpenRead(zipPath);
+            foreach (var entry in zip.Entries)
+            {
+                if (!string.Equals(Path.GetExtension(entry.FullName), ext, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var target = Path.Combine(nativesDir, Path.GetFileName(entry.FullName));
+                if (!File.Exists(target))
+                {
+                    entry.ExtractToFile(target, true);
+                    System.Diagnostics.Debug.WriteLine($"[Launch] 解压 native: {target}");
+                }
+            }
+            return true;
+        }
     }
 
     /// <summary>
-    /// 将 Maven 库名（如 net.fabricmc:fabric-loader:0.19.3）转换为文件路径
+    /// 将 Maven 库名转换为文件路径。
+    /// 支持带 classifier 的四段名（如 org.lwjgl:lwjgl:3.2.1:natives-windows）
+    /// → <artifact>-<version>-<classifier>.jar
     /// </summary>
     private static string LibraryNameToPath(string name)
     {
@@ -694,6 +894,8 @@ partial class Program
         var group = parts[0].Replace('.', '/');
         var artifact = parts[1];
         var version = parts[2];
+        if (parts.Length >= 4)
+            return $"{group}/{artifact}/{version}/{artifact}-{version}-{string.Join('-', parts.Skip(3))}.jar";
         return $"{group}/{artifact}/{version}/{artifact}-{version}.jar";
     }
 

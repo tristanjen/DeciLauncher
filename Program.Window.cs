@@ -145,7 +145,7 @@ partial class Program
                         // 先关闭正在运行的游戏并取消进行中的启动，再销毁窗口，
                         // 避免游戏进程残留以及销毁后异步回调继续调用窗口 API
                         CloseGame(window);
-                        LaunchCts.Cancel();
+                        Volatile.Read(ref LaunchCts).Cancel();
                         window.Close();
                         return;
                     }

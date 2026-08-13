@@ -22,6 +22,10 @@ partial class Program
     private static readonly List<AccountEntry> Accounts = [];
     // 已认证账户缓存（避免每次启动重新 Authenticate 导致 UUID 不一致）
     private static readonly Dictionary<string, Account> AuthenticatedAccounts = [];
+    // 账户列表与认证缓存的访问锁：
+    // 创建/删除在 Photino 消息线程执行，启动流程在后台线程读取（LaunchGame 的 await 之后），
+    // 无锁并发读写 List/Dictionary 可能抛异常或破坏内部状态
+    internal static readonly object AccountsLock = new();
 
     /// <summary>
     /// 账户数据结构（序列化为 JSON 数组格式存储至 accounts.json）
@@ -102,14 +106,19 @@ partial class Program
     }
 
     /// <summary>
-    /// 保存账户列表到 accounts.json
+    /// 保存账户列表到 accounts.json（锁内快照后序列化，避免与并发读交叉）
     /// </summary>
     private static void SaveAccounts()
     {
         try
         {
+            AccountEntry[] snapshot;
+            lock (AccountsLock)
+            {
+                snapshot = Accounts.ToArray();
+            }
             Directory.CreateDirectory(AccountsDir);
-            File.WriteAllText(AccountsFilePath, JsonSerializer.Serialize(Accounts));
+            File.WriteAllText(AccountsFilePath, JsonSerializer.Serialize(snapshot));
         }
         catch (Exception ex)
         {
@@ -127,15 +136,23 @@ partial class Program
             var account = new OfflineAuthenticator().Authenticate(name);
             var uuid = account.Uuid.ToString();
 
-            if (Accounts.Any(a => a.Uuid == uuid))
+            // 锁内只做列表/字典操作，消息发送移到锁外（Invoke 投递与 UI 线程交互，避免持锁等待）
+            var exists = false;
+            lock (AccountsLock)
+            {
+                exists = Accounts.Any(a => a.Uuid == uuid);
+                if (!exists)
+                {
+                    var entry = new AccountEntry(account.Name, uuid, "offline", "steve");
+                    Accounts.Add(entry);
+                    AuthenticatedAccounts[uuid] = account;
+                }
+            }
+            if (exists)
             {
                 TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "account-error", message = L($"账户 {account.Name} 已存在", $"Account {account.Name} already exists") }));
                 return;
             }
-
-            var entry = new AccountEntry(account.Name, uuid, "offline", "steve");
-            Accounts.Add(entry);
-            AuthenticatedAccounts[uuid] = account;
             SaveAccounts();
             SendAccountList(window);
         }
@@ -150,24 +167,27 @@ partial class Program
     /// </summary>
     private static void DeleteAccount(PhotinoWindow window, string uuid)
     {
-        Accounts.RemoveAll(a => a.Uuid == uuid);
-        AuthenticatedAccounts.Remove(uuid);
+        lock (AccountsLock)
+        {
+            Accounts.RemoveAll(a => a.Uuid == uuid);
+            AuthenticatedAccounts.Remove(uuid);
+        }
         SaveAccounts();
         SendAccountList(window);
     }
 
     private static void SendAccountList(PhotinoWindow window)
     {
+        // 锁内快照后释放，序列化在锁外执行，避免长时间持锁
+        AccountEntry[] snapshot;
+        lock (AccountsLock)
+        {
+            snapshot = Accounts.ToArray();
+        }
         TryNotifyWindow(window, JsonSerializer.Serialize(new
         {
             type = "account-list",
-            accounts = Accounts.Select(a => new
-            {
-                username = a.Username,
-                uuid = a.Uuid,
-                type = a.Type,
-                skinModel = a.SkinModel
-            })
+            accounts = snapshot
         }));
     }
 
