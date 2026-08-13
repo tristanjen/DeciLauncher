@@ -54,10 +54,11 @@ partial class Program
             SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
 
         // MinecraftLaunch 全局初始化（下载线程、重试、UserAgent 等）
+        // MaxThread/MaxFragment 调低：启动器下载任务少，降低线程池/分片缓冲的常驻资源
         InitializeHelper.Initialize(settings =>
         {
-            settings.MaxThread = 256;
-            settings.MaxFragment = 128;
+            settings.MaxThread = 64;
+            settings.MaxFragment = 32;
             settings.MaxRetryCount = 4;
             settings.IsEnableMirror = false;
             settings.IsEnableFragment = false;
@@ -86,11 +87,14 @@ partial class Program
         }
         else
         {
-            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+            // Slim builder：本启动器只用 Kestrel 托管内嵌静态文件 + 一个安全中间件，
+            // 不需要完整 ASP.NET 的配置源/日志/服务注册，减少默认设施的内存与启动开销
+            var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
             {
                 Args = args,
                 WebRootPath = AppContext.BaseDirectory
             });
+            builder.Logging.ClearProviders();
             var assembly = Assembly.GetEntryAssembly();
             if (assembly != null)
             {

@@ -60,8 +60,21 @@ partial class Program
             .SetFileSystemAccessEnabled(false)
             // 禁用全屏模式
             .SetFullScreen(false)
-            // 锁定 WebView2 devicePixelRatio 为初始值，阻止跨显示器自动缩放
-            .SetBrowserControlInitParameters($"--force-device-scale-factor={scale.ToString(System.Globalization.CultureInfo.InvariantCulture)}")
+            // 锁定 WebView2 devicePixelRatio 为初始值，阻止跨显示器自动缩放；
+            // 禁用 GPU 加速：本启动器为静态 UI，软件渲染即可，消除独立 GPU 进程的内存占用；
+            // 禁用 Chromium 后台组件（网络服务/组件更新/默认应用），减少常驻 utility 进程。
+            // 注意：不使用 --metrics-recording-only（其语义是本地记录指标，会把含 ?token=
+            // 的导航 URL 写入本地 EBWebView 数据目录）
+            .SetBrowserControlInitParameters(string.Join(' ', new[]
+            {
+                $"--force-device-scale-factor={scale.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                "--disable-gpu",
+                "--disable-background-networking",
+                "--disable-component-update",
+                "--disable-default-apps",
+                // 限制 renderer 的 V8 堆:3 个静态页面 256 MB 绰绰有余,压住最大那个子进程的工作集
+                "--js-flags=--max-old-space-size=256"
+            }))
             // ===== 注册窗口事件处理器 =====
             // 窗口创建完成后设置就绪标记
             .RegisterWindowCreatedHandler((sender, args) =>
@@ -160,7 +173,10 @@ partial class Program
                     // ---- 扫描本机 Java 运行时 ----
                     if (type == "scan-java")
                     {
-                        _ = ScanJavaAsync(window);
+                        // force=true（用户手动刷新）时重新全盘扫描，否则复用后端缓存
+                        var force = root.TryGetProperty("force", out var f) &&
+                                    f.ValueKind == JsonValueKind.True;
+                        _ = ScanJavaAsync(window, force);
                         return;
                     }
 

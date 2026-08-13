@@ -21,7 +21,7 @@ async function scanJava() {
   javaList.value = []            // 清空旧结果
   selectedJava.value = ''        // 重置选中项
   await new Promise(r => requestAnimationFrame(r))  // 等待浏览器下一帧渲染
-  sendNative('scan-java')        // 通过 Photino 消息桥发送扫描命令
+  sendNative('scan-java', { force: true })  // 手动刷新：强制后端重新全盘扫描
 }
 
 /**
