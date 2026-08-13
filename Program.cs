@@ -90,23 +90,25 @@ partial class Program
 
             // 安全：仅绑定 IPv4 回环地址，默认随机端口（0 = 由 Kestrel 自动分配），
             // 防止此前固定 8000 端口被同机其他程序/浏览器直接访问。
-            // DECILAUNCHER_PORT / DECILAUNCHER_TOKEN 环境变量仅供 CI 与诊断固定取值
+            // DECILAUNCHER_PORT / DECILAUNCHER_TOKEN 环境变量仅在 CI/DEBUG 下生效（供测试与诊断）
             var port = ReadConfiguredPort();
             var accessToken = ReadConfiguredToken();
+            // 会话 cookie 值独立于导航 token：即使 URL token 泄露也无法冒充后续会话凭据
+            var sessionToken = Guid.NewGuid().ToString("N");
 
             builder.WebHost.UseUrls($"http://127.0.0.1:{port}");
             var app = builder.Build();
 
             // 访问控制中间件：首次导航必须携带 token（query 参数），校验通过后
-            // 下发 HttpOnly 会话 cookie，后续静态资源请求凭 cookie 通过；
-            // 无凭据请求一律 404（不泄露服务存在性），阻止本机任意程序直接访问前端。
+            // 下发 HttpOnly 会话 cookie（独立随机值），后续静态资源请求凭 cookie 通过；
+            // 无凭据请求一律 404，阻止本机任意程序直接访问前端。
             // Referrer-Policy: no-referrer 防止 token 随 Referer 头泄露到任何外部站点
             app.Use(async (context, next) =>
             {
                 var token = context.Request.Query["token"].ToString();
-                if (token == accessToken)
+                if (token.Length > 0 && TokensEqual(token, accessToken))
                 {
-                    context.Response.Cookies.Append(AccessCookieName, accessToken, new CookieOptions
+                    context.Response.Cookies.Append(AccessCookieName, sessionToken, new CookieOptions
                     {
                         HttpOnly = true,
                         SameSite = SameSiteMode.Strict
@@ -115,7 +117,8 @@ partial class Program
                     await next();
                     return;
                 }
-                if (context.Request.Cookies[AccessCookieName] == accessToken)
+                var cookie = context.Request.Cookies[AccessCookieName];
+                if (!string.IsNullOrEmpty(cookie) && TokensEqual(cookie, sessionToken))
                 {
                     context.Response.Headers["Referrer-Policy"] = "no-referrer";
                     await next();
@@ -167,22 +170,48 @@ partial class Program
     private const string AccessCookieName = "DeciLauncherAccess";
 
     /// <summary>
-    /// 从环境变量读取端口：默认 0（随机端口）；DECILAUNCHER_PORT 供 CI/诊断固定端口
+    /// 从环境变量读取端口：默认 0（随机端口）。
+    /// DECILAUNCHER_PORT 仅在 CI（GITHUB_ACTIONS）或 DEBUG 构建下生效，供测试与诊断固定端口；
+    /// 普通用户运行时始终随机，避免恶意进程通过用户环境变量预设已知端口
     /// </summary>
     private static int ReadConfiguredPort()
     {
+        if (!AllowEnvironmentOverride()) return 0;
         var raw = Environment.GetEnvironmentVariable("DECILAUNCHER_PORT");
         return int.TryParse(raw, out var port) && port is >= 0 and <= 65535 ? port : 0;
     }
 
     /// <summary>
-    /// 从环境变量读取访问 token：默认每次启动随机生成；DECILAUNCHER_TOKEN 供 CI/诊断固定 token
+    /// 从环境变量读取访问 token：默认每次启动随机生成。
+    /// DECILAUNCHER_TOKEN 仅在 CI/DEBUG 下生效，且必须匹配 [A-Za-z0-9_-]{8,64}，
+    /// 防止特殊字符破坏 URL 拼接或弱 token 被预置
     /// </summary>
     private static string ReadConfiguredToken()
     {
-        var token = Environment.GetEnvironmentVariable("DECILAUNCHER_TOKEN");
-        return string.IsNullOrEmpty(token) ? Guid.NewGuid().ToString("N") : token;
+        if (AllowEnvironmentOverride())
+        {
+            var token = Environment.GetEnvironmentVariable("DECILAUNCHER_TOKEN");
+            if (!string.IsNullOrEmpty(token) && token.Length is >= 8 and <= 64 &&
+                token.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_'))
+                return token;
+        }
+        return Guid.NewGuid().ToString("N");
     }
+
+    /// <summary>
+    /// 环境变量覆盖仅在 CI runner 或 DEBUG 构建下允许
+    /// </summary>
+    private static bool AllowEnvironmentOverride() =>
+        IsDebugMode || Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+
+    /// <summary>
+    /// 恒定时间字符串比较，避免 token/session 比较的时序侧信道
+    /// </summary>
+    private static bool TokensEqual(string a, string b) =>
+        a.Length == b.Length &&
+        System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(a),
+            System.Text.Encoding.UTF8.GetBytes(b));
 
     /// <summary>
     /// 探测本地 HTTP 服务器是否可达（DEBUG 模式下检查 Vite 开发服务器）
