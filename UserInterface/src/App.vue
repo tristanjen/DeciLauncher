@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { sendNative, onNativeMessage } from './native'
 import { javaList, selectedJava, scanning, hasScanned, games, scanningGames, gamePath, accounts, notification, accountBusy, selectedGame, selectedAccount, launching, gameRunning } from './stores/store'
+// 国际化：当前语言（后端错误消息随语言同步）
+import { locale } from './stores/locale'
 import TitleBar from './components/Controls/TitleBar.vue';
 import Notification from './components/Controls/Notification.vue';
 import Toast from './components/Controls/Toast.vue';
+
+// 语言变化时同步给 C# 后端（错误/提示消息语言即时一致）
+watch(locale, (v) => sendNative('set-language', { language: v }))
 
 onMounted(async () => {
   onNativeMessage('java-list', (payload) => {
@@ -63,6 +68,8 @@ onMounted(async () => {
 
   scanning.value = true
   await new Promise(r => requestAnimationFrame(r))
+  // 先把当前语言同步给后端，再发起扫描（保证后端错误消息语言一致）
+  sendNative('set-language', { language: locale.value })
   sendNative('scan-java')
   sendNative('scan-games', { path: gamePath.value })
   sendNative('list-accounts')

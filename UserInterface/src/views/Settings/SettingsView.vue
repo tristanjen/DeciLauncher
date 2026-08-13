@@ -2,6 +2,8 @@
 import { ref, onMounted, nextTick } from 'vue'
 import Card from '../../components/Controls/Card.vue'
 import NavLink from '../../components/Controls/NavLink.vue'
+// 国际化翻译
+import { t } from '../../stores/locale'
 
 // 侧边栏滑入动画触发
 const sidebarVisible = ref(false)
@@ -16,9 +18,9 @@ onMounted(async () => {
   <div class="flex gap-3">
     <Transition name="sidebar-slide">
       <Card v-if="sidebarVisible" hover-shadow class="flex flex-col gap-2 w-50">
-        <NavLink to="/settings/gameSettings" label="游戏设置" size="sidebar" />
-        <NavLink to="/settings/LauncherSettings" label="启动器设置" size="sidebar" />
-        <NavLink to="/settings/about" label="关于" size="sidebar" />
+        <NavLink to="/settings/gameSettings" :label="t('settings.gameSettings')" size="sidebar" />
+        <NavLink to="/settings/LauncherSettings" :label="t('settings.launcherSettings')" size="sidebar" />
+        <NavLink to="/settings/about" :label="t('settings.about')" size="sidebar" />
       </Card>
     </Transition>
     <Transition name="content-drop" mode="out-in" appear>

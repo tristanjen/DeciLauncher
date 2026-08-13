@@ -5,6 +5,8 @@ import { ref } from 'vue'
 import { sendNative } from '../native'
 // 全局共享状态（账户列表）
 import { accounts, accountBusy, toast, selectedAccount } from '../stores/store'
+// 国际化翻译
+import { t } from '../stores/locale'
 // 自定义控件
 import PrimaryButton from '../components/Controls/PrimaryButton.vue'
 import DefaultButton from '../components/Controls/DefaultButton.vue'
@@ -60,7 +62,7 @@ function toggleAccount(uuid: string) {
 async function copyUuid(uuid: string) {
   try {
     await navigator.clipboard.writeText(uuid)
-    toast.value = '已复制到剪贴板'
+    toast.value = t('accounts.copied')
   } catch { /* 忽略剪贴板错误 */ }
 }
 
@@ -77,9 +79,9 @@ function refreshAccounts() {
  */
 function typeLabel(type: string): string {
   switch (type) {
-    case 'offline': return '离线账户'
-    case 'microsoft': return '正版账户'
-    case 'yggdrasil': return '第三方账户'
+    case 'offline': return t('accounts.typeOffline')
+    case 'microsoft': return t('accounts.typeMicrosoft')
+    case 'yggdrasil': return t('accounts.typeYggdrasil')
     default: return type
   }
 }
@@ -102,22 +104,22 @@ function typeColor(type: string): string {
     <!-- 操作栏：三个账户按钮 + 刷新按钮 -->
     <div class="flex gap-2 items-center">
       <DefaultButton @click="showCreateModal = true">
-        创建离线账户
+        {{ t('accounts.createOffline') }}
       </DefaultButton>
       <DefaultButton disabled>
-        登录正版账户
+        {{ t('accounts.loginMicrosoft') }}
       </DefaultButton>
       <DefaultButton disabled>
-        登录第三方账户
+        {{ t('accounts.loginThirdParty') }}
       </DefaultButton>
       <DefaultButton
         class="ml-auto"
         :loading="accountBusy"
-        loading-text="刷新中..."
+        :loading-text="t('common.refreshing')"
         :disabled="accountBusy"
         @click="refreshAccounts"
       >
-        刷新
+        {{ t('common.refresh') }}
       </DefaultButton>
     </div>
     <!-- 账户内容区：下拉弹入动画 -->
@@ -148,19 +150,19 @@ function typeColor(type: string): string {
         </Card>
         <!-- 空列表提示 -->
         <p v-if="accounts.length === 0" class="grow flex items-center justify-center text-2xl font-medium">
-          还没有账户
+          {{ t('accounts.noneFound') }}
         </p>
       </div>
     </Transition>
     <!-- 创建离线账户弹窗 -->
-    <Modal v-model="showCreateModal" title="创建离线账户">
+    <Modal v-model="showCreateModal" :title="t('accounts.createOffline')">
       <label class="flex flex-col gap-1">
-        <span class="text-xs text-gray-700">玩家名</span>
+        <span class="text-xs text-gray-700">{{ t('accounts.playerName') }}</span>
         <TextInput v-model="newName" :maxlength="16" @submit="createAccount" />
       </label>
       <template #footer>
-        <DefaultButton @click="closeCreateModal">取消</DefaultButton>
-        <PrimaryButton :disabled="accountBusy" @click="createAccount">创建</PrimaryButton>
+        <DefaultButton @click="closeCreateModal">{{ t('common.cancel') }}</DefaultButton>
+        <PrimaryButton :disabled="accountBusy" @click="createAccount">{{ t('accounts.create') }}</PrimaryButton>
       </template>
     </Modal>
   </div>

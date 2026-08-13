@@ -22,6 +22,15 @@ partial class Program
     public static bool IsDebugMode = false;
 #endif
 
+    // ===== 语言状态（前端 set-language 消息同步） =====
+    // 当前界面语言：默认 zh-CN，前端启动时按 localStorage/系统语言发送 set-language 覆盖
+    internal static string CurrentLanguage = "zh-CN";
+    // 双语消息辅助：按当前语言选择文案
+    internal static string L(string zh, string en) => CurrentLanguage == "zh-CN" ? zh : en;
+    // 致命错误文案：窗口加载前无前端语言信息，按系统 UI 语言选择
+    internal static string FL(string zh, string en) =>
+        System.Globalization.CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? zh : en;
+
     // ===== 日志系统（仅 DEBUG 模式） =====
 
 #if DEBUG
@@ -66,9 +75,11 @@ partial class Program
             // 先探测 Vite 开发服务器是否可达，避免窗口白屏且无任何提示
             if (!IsLocalServerReachable("http://localhost:5173"))
             {
-                ShowFatalError(
+                ShowFatalError(FL(
                     "无法连接前端开发服务器 (http://localhost:5173)。\n\n" +
-                    "请先在 UserInterface 目录运行 pnpm dev 后重新启动。");
+                    "请先在 UserInterface 目录运行 pnpm dev 后重新启动。",
+                    "Cannot connect to the frontend dev server (http://localhost:5173).\n\n" +
+                    "Run pnpm dev in the UserInterface directory and try again."));
                 return;
             }
             appUrl = "http://localhost:5173";
@@ -136,7 +147,9 @@ partial class Program
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[FATAL] Web 服务器启动失败: {ex}");
-                ShowFatalError($"无法在 127.0.0.1:{port} 启动本地服务器，请确认端口未被占用。\n\n{ex.Message}");
+                ShowFatalError(FL(
+                    $"无法在 127.0.0.1:{port} 启动本地服务器，请确认端口未被占用。\n\n{ex.Message}",
+                    $"Failed to start the local server on 127.0.0.1:{port}. Make sure the port is not in use.\n\n{ex.Message}"));
                 return;
             }
 
@@ -145,7 +158,7 @@ partial class Program
                 u.StartsWith("http://127.0.0.1", StringComparison.Ordinal));
             if (boundUrl == null)
             {
-                ShowFatalError("无法获取本地服务器的实际绑定地址。");
+                ShowFatalError(FL("无法获取本地服务器的实际绑定地址。", "Failed to obtain the local server's bound address."));
                 return;
             }
             appUrl = $"{boundUrl}/index.html?token={accessToken}";

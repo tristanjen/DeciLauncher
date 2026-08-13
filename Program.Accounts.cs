@@ -129,7 +129,7 @@ partial class Program
 
             if (Accounts.Any(a => a.Uuid == uuid))
             {
-                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "account-error", message = $"账户 {account.Name} 已存在" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "account-error", message = L($"账户 {account.Name} 已存在", $"Account {account.Name} already exists") }));
                 return;
             }
 

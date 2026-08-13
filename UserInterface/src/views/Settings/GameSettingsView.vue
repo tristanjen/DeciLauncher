@@ -5,6 +5,8 @@ import { computed, watch } from 'vue'
 import { sendNative } from '../../native'
 // 全局共享状态（Java 列表、选中项、扫描标记、内存上限）
 import { javaList, selectedJava, scanning, hasScanned, maxMemory } from '../../stores/store'
+// 国际化翻译
+import { t } from '../../stores/locale'
 // 自定义控件（下拉/按钮/滑块）
 import Dropdown from '../../components/Controls/Dropdown.vue'
 import DefaultButton from '../../components/Controls/DefaultButton.vue'
@@ -26,12 +28,12 @@ async function scanJava() {
  * 下拉框选项：根据扫描状态动态构建
  */
 const dropdownOptions = computed(() => {
-  if (scanning.value) return [{ label: '扫描中...', value: '', disabled: true }]
-  if (javaList.value.length === 0) return [{ label: hasScanned.value ? '没有找到 Java 运行时' : '还没有扫描哦~', value: '', disabled: true }]
+  if (scanning.value) return [{ label: t('settings.scanning'), value: '', disabled: true }]
+  if (javaList.value.length === 0) return [{ label: hasScanned.value ? t('settings.noJavaFound') : t('settings.notScannedYet'), value: '', disabled: true }]
   return [
-    { label: '自动选择', value: '__auto__' },
+    { label: t('settings.autoSelect'), value: '__auto__' },
     ...javaList.value.map(j => ({
-      label: `${j.version ? `Java ${j.version}` : 'Unknown'} — ${j.path}`,
+      label: `${j.version ? `Java ${j.version}` : t('settings.unknown')} — ${j.path}`,
       value: j.path
     }))
   ]
@@ -48,25 +50,25 @@ watch(maxMemory, (val) => {
     <!-- Java 运行时行 -->
     <div class="flex items-end gap-2">
       <label class="flex flex-col gap-1 grow">
-        <span class="text-sm font-medium">Java 运行时</span>
-        <Dropdown v-model="selectedJava" :options="dropdownOptions" placeholder="还没有扫描哦~" />
+        <span class="text-sm font-medium">{{ t('settings.javaRuntime') }}</span>
+        <Dropdown v-model="selectedJava" :options="dropdownOptions" :placeholder="t('settings.notScannedYet')" />
       </label>
       <DefaultButton
         :loading="scanning"
-        loading-text="扫描中..."
+        :loading-text="t('settings.scanning')"
         :disabled="scanning"
         @click="scanJava"
       >
-        扫描
+        {{ t('settings.scan') }}
       </DefaultButton>
     </div>
     <!-- 游戏内存行 -->
     <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium">游戏内存</span>
+      <span class="text-sm font-medium">{{ t('settings.gameMemory') }}</span>
       <div class="flex items-center gap-3">
         <RangeSlider v-model="maxMemory" />
         <span class="text-sm text-gray-700 w-16 text-right shrink-0">
-          {{ maxMemory >= 1024 ? (maxMemory / 1024).toFixed(1) + ' GB' : maxMemory + ' MB' }}
+          {{ maxMemory >= 1024 ? (maxMemory / 1024).toFixed(1) + ' ' + t('settings.gb') : maxMemory + ' ' + t('settings.mb') }}
         </span>
       </div>
     </label>

@@ -12,6 +12,8 @@ import { launching, gameRunning } from '../stores/launch'
 // 自定义控件
 import PrimaryButton from '../components/Controls/PrimaryButton.vue'
 import DefaultButton from '../components/Controls/DefaultButton.vue'
+// 国际化翻译
+import { t } from '../stores/locale'
 
 // 当前选中的游戏版本信息
 const currentGame = computed(() => games.value.find(g => g.id === selectedGame.value))
@@ -49,9 +51,9 @@ function cancelLaunch() {
  * 按钮文字
  */
 const buttonText = computed(() => {
-  if (launching.value) return '启动中...'
-  if (gameRunning.value) return '关闭游戏'
-  return '启动游戏'
+  if (launching.value) return t('home.launching')
+  if (gameRunning.value) return t('home.closeGame')
+  return t('home.launchGame')
 })
 </script>
 
@@ -63,12 +65,12 @@ const buttonText = computed(() => {
     <div class="flex items-end justify-between">
       <!-- 左下：当前选中的游戏版本 -->
       <span class="text-3xl font-medium">
-        {{ currentGame ? currentGame.id : '未选择游戏' }}
+        {{ currentGame ? currentGame.id : t('home.noGameSelected') }}
       </span>
       <!-- 右下：取消/启动/关闭游戏按钮 -->
       <div class="flex items-center gap-2 ml-auto">
         <Transition name="cancel-btn">
-          <DefaultButton v-if="launching" size="lg" @click="cancelLaunch">取消</DefaultButton>
+          <DefaultButton v-if="launching" size="lg" @click="cancelLaunch">{{ t('common.cancel') }}</DefaultButton>
         </Transition>
         <PrimaryButton
           size="lg"

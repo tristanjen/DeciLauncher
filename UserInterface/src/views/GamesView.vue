@@ -9,6 +9,8 @@ import { games, scanningGames, gamePath, selectedGame } from '../stores/store'
 import DefaultButton from '../components/Controls/DefaultButton.vue'
 import RadioItem from '../components/Controls/RadioItem.vue'
 import Card from '../components/Controls/Card.vue'
+// 国际化翻译
+import { t } from '../stores/locale'
 
 // 原版游戏（isVanilla = true）
 const vanillaGames = computed(() => games.value.filter(g => g.isVanilla))
@@ -59,16 +61,16 @@ function toggleGame(id: string) {
   <div class="grow flex flex-col gap-3 overflow-y-auto min-h-0 scroll-smooth">
     <!-- 标题行：游戏来源 + 浏览/刷新按钮 -->
     <div class="flex items-center justify-between">
-      <span class="text-xs text-gray-500">游戏目录：{{ gamePath }}</span>
+      <span class="text-xs text-gray-500">{{ t('games.directory', { path: gamePath }) }}</span>
       <div class="flex gap-2">
-        <DefaultButton @click="pickGamePath">浏览</DefaultButton>
+        <DefaultButton @click="pickGamePath">{{ t('games.browse') }}</DefaultButton>
         <DefaultButton
           :loading="scanningGames"
-          loading-text="刷新中..."
+          :loading-text="t('common.refreshing')"
           :disabled="scanningGames"
           @click="scanGames"
         >
-          刷新
+          {{ t('common.refresh') }}
         </DefaultButton>
       </div>
     </div>
@@ -77,33 +79,33 @@ function toggleGame(id: string) {
       <div v-if="!scanningGames" key="games" class="grow flex flex-col gap-3">
         <!-- 原版分区卡片 -->
         <Card v-if="vanillaGames.length > 0" class="flex flex-col gap-2">
-          <span class="text-xs text-[#333] font-medium">原版</span>
+          <span class="text-xs text-[#333] font-medium">{{ t('games.vanilla') }}</span>
           <div v-for="g in vanillaGames" :key="g.id"
             class="flex items-center cursor-pointer"
             @click="toggleGame(g.id)">
             <RadioItem :selected="selectedGame === g.id" />
             <div class="flex flex-col">
               <span class="text-sm">{{ g.id }}</span>
-              <span class="text-xs text-gray-500">Minecraft {{ g.mcVersion }}</span>
+              <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }}</span>
             </div>
           </div>
         </Card>
         <!-- 模组分区分区卡片 -->
         <Card v-if="moddedGames.length > 0" class="flex flex-col gap-2">
-          <span class="text-xs text-[#333] font-medium">可安装模组</span>
+          <span class="text-xs text-[#333] font-medium">{{ t('games.modded') }}</span>
           <div v-for="g in moddedGames" :key="g.id"
             class="flex items-center cursor-pointer"
             @click="toggleGame(g.id)">
             <RadioItem :selected="selectedGame === g.id" />
             <div class="flex flex-col">
               <span class="text-sm">{{ g.id }}</span>
-              <span class="text-xs text-gray-500">Minecraft {{ g.mcVersion }} / {{ g.loader }}</span>
+              <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }} / {{ g.loader }}</span>
             </div>
           </div>
         </Card>
         <!-- 空列表提示 -->
         <p v-if="games.length === 0" class="grow flex items-center justify-center text-2xl font-medium">
-          未找到已安装的游戏
+          {{ t('games.noneFound') }}
         </p>
       </div>
     </Transition>

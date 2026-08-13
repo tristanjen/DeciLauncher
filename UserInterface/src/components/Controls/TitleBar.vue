@@ -3,6 +3,8 @@
 import { ref } from 'vue'
 // Toast 提示消息
 import { toast } from '../../stores/store'
+// 国际化翻译
+import { t } from '../../stores/locale'
 // 导入窗口拖拽 composable（封装拖拽逻辑 + Photino 通信）
 import { useWindowDrag } from '../../composables/useWindowDrag'
 // 自定义控件：导航链接 + 图标按钮
@@ -36,7 +38,7 @@ function handleLogoClick() {
   logoClickCount.value++
   if (logoClickCount.value >= 5) {
     localStorage.clear()
-    toast.value = 'localStorage 重置成功'
+    toast.value = t('titlebar.localStorageReset')
     logoClickCount.value = 0
     if (logoClickTimer) { clearTimeout(logoClickTimer); logoClickTimer = undefined }
     return
@@ -54,11 +56,11 @@ function handleLogoClick() {
 
     <!-- 导航链接：用 custom+v-slot 渲染为 <span> 规避 WebView2 状态栏 URL 显示 -->
     <div class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center gap-2" @mousedown.stop>
-      <NavLink to="/" label="主页" />
-      <NavLink to="/games" label="游戏" />
-      <NavLink to="/downloads" label="下载" />
-      <NavLink to="/accounts" label="账户" />
-      <NavLink to="/settings" label="设置" />
+      <NavLink to="/" :label="t('nav.home')" />
+      <NavLink to="/games" :label="t('nav.games')" />
+      <NavLink to="/downloads" :label="t('nav.downloads')" />
+      <NavLink to="/accounts" :label="t('nav.accounts')" />
+      <NavLink to="/settings" :label="t('nav.settings')" />
     </div>
 
     <!-- 右侧按钮组：关闭 + 最小化 -->

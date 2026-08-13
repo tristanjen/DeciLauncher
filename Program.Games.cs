@@ -133,7 +133,7 @@ partial class Program
             var message = JsonSerializer.Serialize(new
             {
                 type = "game-error",
-                message = ex.Message
+                message = $"{L("选择目录失败", "Failed to pick directory")}: {ex.Message}"
             });
             TryNotifyWindow(window, message);
         }

@@ -130,6 +130,15 @@ partial class Program
                         return;
                     }
 
+                    // ---- 设置界面语言（国际化：前端启动/切换语言时同步给后端，用于错误消息） ----
+                    if (type == "set-language")
+                    {
+                        var lang = root.TryGetProperty("language", out var l) ? l.GetString() : null;
+                        if (lang is "zh-CN" or "en-US")
+                            CurrentLanguage = lang;
+                        return;
+                    }
+
                     // ---- 关闭窗口 ----
                     if (type == "close")
                     {

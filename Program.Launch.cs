@@ -83,7 +83,7 @@ partial class Program
             // 并发防护：已有游戏进程在运行时拒绝重复启动，避免两个启动任务互相覆盖 RunningProcess
             if (RunningProcess != null)
             {
-                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = "已有游戏正在运行" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("已有游戏正在运行", "A game is already running") }));
                 return;
             }
 
@@ -98,7 +98,7 @@ partial class Program
             var accountEntry = Accounts.FirstOrDefault(a => a.Uuid == accountUuid);
             if (accountEntry == null)
             {
-                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = "未找到选中的账户" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("未找到选中的账户", "Selected account not found") }));
                 return;
             }
             if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null); return; }
@@ -113,7 +113,7 @@ partial class Program
             var game = parser.GetMinecraft(gameId);
             if (game == null)
             {
-                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = "未找到选中的游戏版本" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("未找到选中的游戏版本", "Selected game version not found") }));
                 return;
             }
             if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null); return; }
@@ -128,7 +128,7 @@ partial class Program
             };
             if (java == null)
             {
-                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = "未找到合适的 Java 运行时" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("未找到合适的 Java 运行时", "No suitable Java runtime found") }));
                 return;
             }
 
@@ -169,7 +169,7 @@ partial class Program
             catch (Exception rex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Launch] RunAsync 异常: {rex}");
-                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = $"启动异常: {rex.Message}" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = $"{L("启动异常", "Launch error")}: {rex.Message}" }));
                 return;
             }
             if (launchToken.IsCancellationRequested)
@@ -181,7 +181,7 @@ partial class Program
             // RunAsync 可能返回 null（库内部提前返回），此时独立构造路径无法工作，直接报错
             if (RunningProcess == null)
             {
-                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = "启动失败：未创建游戏进程" }));
+                TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("启动失败：未创建游戏进程", "Launch failed: no game process was created") }));
                 return;
             }
 
@@ -281,7 +281,7 @@ partial class Program
                     catch (Exception fallbackEx)
                     {
                         System.Diagnostics.Debug.WriteLine($"[Launch] 手动启动失败: {fallbackEx}");
-                        TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = $"启动失败: {fallbackEx.Message}" }));
+                        TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = $"{L("启动失败", "Launch failed")}: {fallbackEx.Message}" }));
                         return;
                     }
                 }
@@ -324,7 +324,7 @@ partial class Program
                                 return;
                             }
                             System.Diagnostics.Debug.WriteLine($"[MC] 启动失败，退出码: {processRef.Process.ExitCode}");
-                            TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = "游戏启动失败，请检查版本完整性" }));
+                            TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("游戏启动失败，请检查版本完整性", "Game failed to start. Please check version integrity.") }));
                             processRef.Dispose();
                             if (RunningProcess == processRef) RunningProcess = null;
                             return;
@@ -347,7 +347,7 @@ partial class Program
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[Launch] 状态检查异常: {ex.Message}");
-                    TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = "游戏启动失败，请检查版本完整性" }));
+                    TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("游戏启动失败，请检查版本完整性", "Game failed to start. Please check version integrity.") }));
                 }
             });
         }
