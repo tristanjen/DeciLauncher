@@ -32,3 +32,4 @@ UserInterface/*.tsbuildinfo
 
 # Reasonix session metadata
 .reasonix/
+AGENTS.md
