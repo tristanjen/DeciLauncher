@@ -263,8 +263,6 @@ partial class Program
                             if (!string.IsNullOrEmpty(e.Data))
                                 System.Diagnostics.Debug.WriteLine($"[MC] ERR: {e.Data}");
                         };
-                        proc.BeginOutputReadLine();
-                        proc.BeginErrorReadLine();
 
                         // 手动绑定退出事件（MinecraftProcess 内置回调在构造器提前 return 后未绑定）
                         proc.Exited += (_, _) =>
@@ -276,6 +274,8 @@ partial class Program
                         };
 
                         if (launchToken.IsCancellationRequested) { CleanupCancelled(window, RunningProcess); return; }
+                        // MinecraftProcess.Start() 内部已执行 Process.Start() + BeginOutputReadLine/BeginErrorReadLine，
+                        // 此处不得重复调用（否则抛 async read already started）
                         RunningProcess.Start();
                     }
                     catch (Exception fallbackEx)
