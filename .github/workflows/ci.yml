@@ -96,17 +96,17 @@ jobs:
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           }
 
-      # ===== Windows: zip =====
+      # ===== Windows: 直接提供单文件 exe（含 RID 重命名避免 asset 重名） =====
       - name: Package Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path "$env:PUBLISH_DIR/*" -DestinationPath "DeciLauncher-$env:VERSION-${{ matrix.rid }}.zip"
+          Copy-Item "$env:PUBLISH_DIR/Deci Launcher.exe" "DeciLauncher-$env:VERSION-${{ matrix.rid }}.exe"
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
         with:
           name: DeciLauncher-${{ matrix.rid }}
-          path: DeciLauncher-*.zip
+          path: DeciLauncher-*.exe
 
       # ===== Linux: .deb =====
       - name: Package Linux .deb
