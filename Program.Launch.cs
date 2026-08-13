@@ -10,6 +10,8 @@ using MinecraftLaunch.Extensions;
 using MinecraftLaunch.Utilities;
 // JSON 解析（AOT 安全的 JsonDocument）
 using System.Text.Json;
+// native 库解压（fallback 路径手动解压 natives）
+using System.IO.Compression;
 // 反射（设置 MinecraftProcess.Process）
 using System.Reflection;
 // Photino 窗口（前端消息回传）
@@ -139,6 +141,9 @@ partial class Program
             }
 
             // 4. 构建启动配置
+            // 注意：不设置 NativesFolder——MinecraftLaunch 4.0.7 的 MinecraftRunner 仅在
+            // NativesFolder 为空时执行 natives 解压，且 ExtractNatives 硬编码解压到
+            // versions/<id>/natives；设置非空值会导致 native 库从未解压且 JVM 参数指向空目录
             var config = new LaunchConfig
             {
                 Account = account,
@@ -146,7 +151,6 @@ partial class Program
                 MinMemorySize = 512,
                 JavaPath = java,
                 LauncherName = "DeciLauncher",
-                NativesFolder = Path.Combine(Path.GetTempPath(), "DeciLauncher", "natives")
             };
 
             // 5. 启动游戏
@@ -201,6 +205,9 @@ partial class Program
                     if (arguments.Count == 0)
                         throw new InvalidOperationException("ArgumentsParser 返回空参数列表");
 
+                    // 确保 native 库已解压（RunAsync 内可能因异常提前返回未执行解压；幂等）
+                    ExtractNativesFallback(game, minecraftPath);
+
                     var proc = new System.Diagnostics.Process
                     {
                         StartInfo = new System.Diagnostics.ProcessStartInfo(java.JavaPath)
@@ -227,6 +234,10 @@ partial class Program
                     {
                         var fallbackArgs = BuildFallbackArgs(game, config, java, minecraftPath);
                         System.Diagnostics.Debug.WriteLine($"[Launch] Fallback 参数: {fallbackArgs.Count} 项");
+
+                        // 确保 native 库已解压到 versions/<id>/natives（fallback 的 natives_directory 指向该处）
+                        ExtractNativesFallback(game, minecraftPath);
+
                         var proc = new System.Diagnostics.Process
                         {
                             StartInfo = new System.Diagnostics.ProcessStartInfo(java.JavaPath)
@@ -417,10 +428,16 @@ partial class Program
         // 版本类型：从版本 JSON 顶层 "type" 字段读取（release/snapshot/old_beta/old_alpha），缺失时回退 "release"
         var versionType = root.TryGetProperty("type", out var vt) ? vt.GetString() ?? "release" : "release";
 
-        // natives 目录与 LaunchConfig.NativesFolder 保持一致（fallback 前已确保目录存在）
-        var nativesDir = config.NativesFolder
-            ?? Path.Combine(Path.GetTempPath(), "DeciLauncher", "natives");
+        // natives 目录与 MinecraftLaunch ExtractNatives 的硬编码解压目标保持一致
+        // （versions/<id>/natives），启动前由 ExtractNativesFallback 确保已解压
+        var nativesDir = Path.Combine(minecraftPath, "versions", game.Id, "natives");
         Directory.CreateDirectory(nativesDir);
+
+        // primary jar：ModdedEntry 自身目录通常没有 jar，回退到继承的 vanilla client jar
+        var primaryJar = game.ClientJarPath
+            ?? (game is ModifiedMinecraftEntry { HasInheritance: true } mm
+                ? mm.InheritedMinecraft.ClientJarPath
+                : "");
 
         var replacements = new Dictionary<string, string>
         {
@@ -430,7 +447,7 @@ partial class Program
             {"${classpath_separator}", OperatingSystem.IsWindows() ? ";" : ":"},
             {"${library_directory}", Path.Combine(minecraftPath, "libraries")},
             {"${libraries_directory}", Path.Combine(minecraftPath, "libraries")},
-            {"${primary_jar}", game.ClientJarPath!},
+            {"${primary_jar}", primaryJar},
             {"${version_name}", versionName},
             {"${natives_directory}", nativesDir},
             {"${auth_player_name}", config.Account!.Name},
@@ -515,14 +532,25 @@ partial class Program
     private static string BuildClassPath(MinecraftEntry game, string minecraftPath)
     {
         var parts = new List<string>();
+        var seen = new HashSet<string>();
 
-        // 核心 jar
-        if (game.ClientJarPath is not null)
-            parts.Add(game.ClientJarPath);
+        // 模组版：先加继承的 vanilla client jar（Fabric/Quilt 自身目录通常没有 jar）
+        if (game is ModifiedMinecraftEntry { HasInheritance: true } modded &&
+            modded.InheritedMinecraft.ClientJarPath is { } inheritedJar && seen.Add(inheritedJar))
+            parts.Add(inheritedJar);
+
+        // 核心 jar（存在且未重复时）
+        if (game.ClientJarPath is { } jar && seen.Add(jar))
+            parts.Add(jar);
 
         // 从版本 JSON 中解析库路径（不触发 ParseJsonNode bug）
         var libPaths = ParseLibraryPaths(game, minecraftPath);
-        parts.AddRange(libPaths.Select(p => Path.Combine(minecraftPath, "libraries", p)));
+        foreach (var p in libPaths)
+        {
+            var full = Path.Combine(minecraftPath, "libraries", p);
+            if (seen.Add(full))
+                parts.Add(full);
+        }
 
         return string.Join(OperatingSystem.IsWindows() ? ';' : ':', parts);
     }
@@ -579,6 +607,80 @@ partial class Program
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[WARN] ReadLibraryPaths: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// fallback/独立路径启动前确保 native 库已解压到 versions/<id>/natives
+    /// （与 MinecraftLaunch ExtractNatives 的硬编码目标一致；幂等：已存在的文件跳过）。
+    /// 从版本 JSON（含继承版本）的 libraries 中筛选带 natives 分类的库，
+    /// 按平台匹配 classifier（natives-windows / natives-windows-x86_64 / natives-windows-arm64 等前缀）
+    /// </summary>
+    private static void ExtractNativesFallback(MinecraftEntry game, string minecraftPath)
+    {
+        try
+        {
+            var nativesDir = Path.Combine(minecraftPath, "versions", game.Id, "natives");
+            Directory.CreateDirectory(nativesDir);
+
+            var platformPrefix = OperatingSystem.IsWindows() ? "natives-windows"
+                : OperatingSystem.IsMacOS() ? "natives-osx" : "natives-linux";
+            var ext = OperatingSystem.IsWindows() ? ".dll"
+                : OperatingSystem.IsMacOS() ? ".dylib" : ".so";
+
+            var jsonPaths = new List<string>();
+            if (game is ModifiedMinecraftEntry { HasInheritance: true } modded)
+                jsonPaths.Add(modded.InheritedMinecraft.ClientJsonPath);
+            jsonPaths.Add(game.ClientJsonPath!);
+
+            foreach (var jsonPath in jsonPaths)
+            {
+                if (!File.Exists(jsonPath)) continue;
+                using var json = JsonDocument.Parse(File.ReadAllText(jsonPath));
+                if (!json.RootElement.TryGetProperty("libraries", out var libs)) continue;
+
+                foreach (var lib in libs.EnumerateArray())
+                {
+                    // 带 natives 分类键的库才含 native 文件
+                    if (!lib.TryGetProperty("natives", out var nativesObj)) continue;
+
+                    foreach (var prop in nativesObj.EnumerateObject())
+                    {
+                        if (!prop.Name.StartsWith(platformPrefix, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        var classifier = prop.Value.GetString();
+                        if (string.IsNullOrEmpty(classifier)) continue;
+
+                        // 从 downloads.classifiers[classifier].path 定位库文件
+                        if (!lib.TryGetProperty("downloads", out var downloads) ||
+                            !downloads.TryGetProperty("classifiers", out var classifiers) ||
+                            !classifiers.TryGetProperty(classifier, out var artifact) ||
+                            !artifact.TryGetProperty("path", out var pathProp))
+                            continue;
+
+                        var zipPath = Path.Combine(minecraftPath, "libraries", pathProp.GetString()!);
+                        if (!File.Exists(zipPath)) continue;
+
+                        using var zip = ZipFile.OpenRead(zipPath);
+                        foreach (var entry in zip.Entries)
+                        {
+                            if (!string.Equals(Path.GetExtension(entry.FullName), ext, StringComparison.OrdinalIgnoreCase))
+                                continue;
+                            var target = Path.Combine(nativesDir, Path.GetFileName(entry.FullName));
+                            if (!File.Exists(target))
+                            {
+                                entry.ExtractToFile(target, true);
+                                System.Diagnostics.Debug.WriteLine($"[Launch] 解压 native: {target}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // 解压失败不致命：游戏启动后会给出更明确的 LWJGL 错误
+            System.Diagnostics.Debug.WriteLine($"[WARN] ExtractNativesFallback 失败: {ex.Message}");
         }
     }
 
