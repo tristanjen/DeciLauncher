@@ -50,7 +50,7 @@ jobs:
             rid: osx-arm64
     runs-on: ${{ matrix.os }}
     env:
-      VERSION: 0.1.0-beta.1
+      VERSION: 1.0.0-beta.1
       PUBLISH_DIR: bin/Release/net10.0/${{ matrix.rid }}/publish
       DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:

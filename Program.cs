@@ -61,7 +61,7 @@ partial class Program
             settings.MaxRetryCount = 4;
             settings.IsEnableMirror = false;
             settings.IsEnableFragment = false;
-            settings.UserAgent = "DeciLauncher/1.0";
+            settings.UserAgent = "DeciLauncher/1.0.0-beta.1";
         });
 
         // 从 Config/accounts.json 加载已保存的账户
@@ -172,7 +172,7 @@ partial class Program
 
         // DEBUG 模式下输出启动日志
 #if DEBUG
-        Logger.LogInformation("Deci Launcher v0.1.0-beta.1 started");
+        Logger.LogInformation("Deci Launcher v1.0.0-beta.1 started");
 #endif
 
         // 阻塞主线程，等待窗口关闭（进入消息循环）

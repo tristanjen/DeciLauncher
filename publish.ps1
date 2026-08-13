@@ -1,7 +1,7 @@
 # DeciLauncher 发布脚本
 # 用法: .\publish.ps1 [-Version <version>] [-Configuration <Release|Debug>]
 param(
-    [string]$version = "0.1.0-beta.1",
+    [string]$version = "1.0.0-beta.1",
     [string]$config = "Release"
 )
 

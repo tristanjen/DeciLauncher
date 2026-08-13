@@ -39,7 +39,7 @@
         <!-- 支持的运行时标识符列表（用于多平台发布） -->
         <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
         <!-- 应用版本号 -->
-        <Version>0.1.0-beta.1</Version>
+        <Version>1.0.0-beta.1</Version>
         <!-- 程序名称 -->
         <Title>Deci Launcher</Title>
         <AssemblyName>Deci Launcher</AssemblyName>
