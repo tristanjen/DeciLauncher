@@ -8,8 +8,12 @@
 
 - **跨平台** — Windows、macOS、Linux（x64 和 ARM64）
 - **离线账户** — 创建和管理离线 Minecraft 账户
-- **Java 自动检测** — 扫描系统中已安装的 Java 运行时，按版本自动匹配最佳版本
+- **Java 自动检测** — 扫描系统中已安装的 Java 运行时，按版本自动匹配最佳版本；手动选择过低版本时给出警告
 - **版本扫描** — 读取 `.minecraft/versions/` 目录，自动检测原版和模组（Fabric/Forge/NeoForge/Quilt）版本
+- **版本隔离** — 版本目录自带 `mods/` 或 `saves/` 时，游戏数据隔离在版本目录内
+- **下载源切换** — 可在 BMCLAPI 镜像源与 Mojang 官方源之间切换
+- **分阶段启动进度** — 启动按钮实时显示阶段（解析版本 → 查找 Java → 启动 → 等待窗口）
+- **崩溃分析** — 游戏异常退出时自动解析最新崩溃报告，中文/英文解释原因（内存/显卡驱动/Mod 冲突/Java 版本等）
 - **单文件发布** — 自包含 `.exe`，无需外部 DLL
 - **简洁界面** — 绿色主题极简 UI，带过渡动画
 
@@ -50,8 +54,12 @@ cd UserInterface && pnpm build && cd ..
 # 构建后端（Debug）
 dotnet build
 
+# 运行测试（xUnit v3，DeciLauncher.Tests）
+dotnet test
+
 # 发布（Release，单文件，自包含）
-dotnet publish -c Release -r win-x64
+# 注意：必须显式指定 csproj —— 不带参数的 dotnet publish 会解析 .slnx 并尝试发布测试项目（NETSDK1151）
+dotnet publish DeciLauncher.csproj -c Release -r win-x64
 ```
 
 ## 使用的开源项目
@@ -66,6 +74,7 @@ dotnet publish -c Release -r win-x64
 | [Vite](https://github.com/vitejs/vite) | 前端构建工具 | MIT |
 | [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | CSS 框架 | MIT |
 | [TypeScript](https://github.com/microsoft/TypeScript) | 类型化 JavaScript | Apache-2.0 |
+| [xUnit](https://github.com/xunit/xunit) | 测试框架 | Apache-2.0 |
 | [pnpm](https://github.com/pnpm/pnpm) | 包管理器 | MIT |
 
 ## 许可证
