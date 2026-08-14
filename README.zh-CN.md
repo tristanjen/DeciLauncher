@@ -17,6 +17,18 @@
 - **单文件发布** — 自包含 `.exe`，无需外部 DLL
 - **简洁界面** — 绿色主题极简 UI，带过渡动画
 
+## 系统要求
+
+| 平台 | 最低版本 | 架构 |
+|------|---------|------|
+| Windows | Windows 10 1809 (17763) 及以上（推荐 22H2 / Windows 11） | x64、arm64 |
+| macOS | macOS 14 Sonoma 及以上 | arm64（Apple Silicon）、x64（Intel） |
+| Linux | Ubuntu 22.04 LTS / Debian 12 / Fedora 42 及以上（glibc ≥ 2.35） | x64、arm64 |
+
+- 不支持 32 位系统。
+- Linux 需系统提供 webkit2gtk-4.1（Ubuntu 22.04、Debian 12 起默认提供）；其他发行版以 glibc 与 webkit2gtk 版本为准自然兼容。
+- 上述下限由 .NET 10 运行时支持矩阵与 Photino 的 WebView 组件（WebView2 / WKWebView / WebKitGTK）决定。
+
 ## 技术栈
 
 | 层级 | 技术 |

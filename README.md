@@ -17,6 +17,18 @@ A cross-platform Minecraft Launcher built with C#/.NET 10 + Photino.NET + Vue 3.
 - **Single-file publish** — Self-contained `.exe` with no external DLLs
 - **Clean UI** — Green-themed minimal interface with animated transitions
 
+## System Requirements
+
+| Platform | Minimum version | Architectures |
+|----------|-----------------|---------------|
+| Windows | Windows 10 1809 (17763) or later (22H2 / Windows 11 recommended) | x64, arm64 |
+| macOS | macOS 14 Sonoma or later | arm64 (Apple Silicon), x64 (Intel) |
+| Linux | Ubuntu 22.04 LTS / Debian 12 / Fedora 42 or later (glibc ≥ 2.35) | x64, arm64 |
+
+- 32-bit systems are not supported.
+- On Linux, webkit2gtk-4.1 must be available (default since Ubuntu 22.04 / Debian 12); other distros work as long as glibc and webkit2gtk meet these versions.
+- These minimums follow the .NET 10 runtime support matrix and Photino's WebView components (WebView2 / WKWebView / WebKitGTK).
+
 ## Tech Stack
 
 | Layer | Technology |
