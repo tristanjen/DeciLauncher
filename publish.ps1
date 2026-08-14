@@ -41,7 +41,8 @@ foreach ($rid in $rids) {
     }
 
     Write-Host "      构建 $rid..." -ForegroundColor White
-    dotnet publish -c $config -r $rid -p:Version=$version
+    # 显式指定主项目: 无参数 publish 会作用于 slnx 并尝试发布测试项目(触发 NETSDK1151)
+    dotnet publish DeciLauncher.csproj -c $config -r $rid -p:Version=$version
     if ($LASTEXITCODE -ne 0) { throw "发布 $rid 失败" }
 
     Write-Host "      已输出到: $publishDir" -ForegroundColor Gray

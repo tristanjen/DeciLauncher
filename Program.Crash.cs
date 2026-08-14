@@ -2,15 +2,15 @@
 // 基于 MinecraftLaunch LogAnalyzer 识别崩溃原因并给出中文解释。
 
 // JSON 序列化（崩溃分析消息回传前端）
-using System.Text.Json;
-// Photino 窗口（前端消息回传）
-using Photino.NET;
 // 崩溃原因枚举 + 分析结果模型
 using MinecraftLaunch.Base.Enums;
-// 日志分析器（崩溃原因识别 + 可疑 Mod 提取）
-using MinecraftLaunch.Components.Logging;
 // 游戏数据模型
 using MinecraftLaunch.Base.Models.Game;
+// 日志分析器（崩溃原因识别 + 可疑 Mod 提取）
+using MinecraftLaunch.Components.Logging;
+// Photino 窗口（前端消息回传）
+using Photino.NET;
+using System.Text.Json;
 
 namespace DeciLauncher;
 

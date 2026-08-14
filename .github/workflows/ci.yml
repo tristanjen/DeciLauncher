@@ -67,7 +67,8 @@ jobs:
 
       - run: dotnet build -c Release
       - run: dotnet test -c Release
-      - run: dotnet publish -c Release -r ${{ matrix.rid }}
+      # 显式指定主项目: 无参数 publish 会作用于 slnx 并尝试发布测试项目(触发 NETSDK1151)
+      - run: dotnet publish DeciLauncher.csproj -c Release -r ${{ matrix.rid }}
 
       # ===== Windows: smoke test（验证裁剪后 Kestrel + 内嵌资源 + 访问控制可用） =====
       - name: Smoke test (Windows)
