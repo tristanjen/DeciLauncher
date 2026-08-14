@@ -84,7 +84,7 @@ partial class Program
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[WARN] 跳过游戏 {versionId}: {ex.Message}");
+                        Log.Debug($"[WARN] 跳过游戏 {versionId}: {ex.Message}");
                     }
                 }
 
@@ -98,7 +98,7 @@ partial class Program
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[WARN] 扫描游戏失败: {ex.Message}");
+                Log.Debug($"[WARN] 扫描游戏失败: {ex.Message}");
                 if (!IsStale())
                     TryNotifyWindow(window, JsonSerializer.Serialize(new
                     {
@@ -112,8 +112,10 @@ partial class Program
 
     /// <summary>
     /// 打开系统文件夹选择器，让用户选择 .minecraft 目录
+    /// 返回 Task 而非 async void：异常由内部 try/catch 全量捕获并转 game-error 消息，
+    /// 调用方以 fire-and-forget（_ = ...）方式投递
     /// </summary>
-    private static async void PickGamePathAsync(PhotinoWindow window)
+    private static async Task PickGamePathAsync(PhotinoWindow window)
     {
         try
         {

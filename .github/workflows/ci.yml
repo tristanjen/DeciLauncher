@@ -66,6 +66,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - run: dotnet build -c Release
+      - run: dotnet test -c Release
       - run: dotnet publish -c Release -r ${{ matrix.rid }}
 
       # ===== Windows: smoke test（验证裁剪后 Kestrel + 内嵌资源 + 访问控制可用） =====

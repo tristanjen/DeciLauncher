@@ -4,6 +4,8 @@ using System.Drawing;
 using System.Text.Json;
 // Photino 桌面窗口框架
 using Photino.NET;
+// 下载管理（下载源偏好：BMCLAPI 镜像开关）
+using MinecraftLaunch;
 
 namespace DeciLauncher;
 
@@ -152,6 +154,18 @@ partial class Program
                         return;
                     }
 
+                    // ---- 设置下载源偏好（前端启动/切换时同步，控制库的 BMCLAPI 镜像开关） ----
+                    if (type == "set-download-source")
+                    {
+                        var source = root.TryGetProperty("source", out var ds) ? ds.GetString() ?? "" : "";
+                        // mirror：尽量使用镜像源（BMCLAPI CDN）
+                        // official-first：优先官方源、加载缓慢时换镜像 —— 自动回退依赖下载功能
+                        //   （待下载任务落地时实现超时/失败回退，现阶段等价于 official）
+                        // official：尽量使用官方源
+                        DownloadManager.IsEnableMirror = source == "mirror";
+                        return;
+                    }
+
                     // ---- 关闭窗口 ----
                     if (type == "close")
                     {
@@ -193,7 +207,7 @@ partial class Program
                     // ---- 打开文件夹选择器选择游戏来源目录 ----
                     if (type == "pick-game-path")
                     {
-                        PickGamePathAsync(window);
+                        _ = PickGamePathAsync(window);
                         return;
                     }
 
@@ -231,7 +245,7 @@ partial class Program
                         var maxMemory = root.TryGetProperty("maxMemory", out var mm) ? mm.GetInt32() : 2048;
                         var minecraftPath = root.TryGetProperty("minecraftPath", out var mp) ? mp.GetString() ?? "" : "";
                         if (!string.IsNullOrEmpty(gameId) && !string.IsNullOrEmpty(accountUuid))
-                            LaunchGame(window, gameId, accountUuid, javaPath, maxMemory, minecraftPath);
+                            _ = LaunchGameAsync(window, gameId, accountUuid, javaPath, maxMemory, minecraftPath);
                         return;
                     }
 
@@ -251,7 +265,7 @@ partial class Program
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Window] 消息解析失败: {ex.Message}");
+                    Log.Debug($"[Window] 消息解析失败: {ex.Message}");
                 }
             })
             // 加载前端页面（load WebView2 content）

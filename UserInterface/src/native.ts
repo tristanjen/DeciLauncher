@@ -1,28 +1,33 @@
 // 前端 ↔ C# 后端消息桥
-// sendNative: 向 Photino 后端发送消息
-// onNativeMessage: 注册特定消息类型的监听器
+// sendNative: 向 Photino 后端发送消息（消息类型契约见 messages.ts）
+// onNativeMessage: 注册特定消息类型的监听器（payload 类型自动推导）
 
-type NativeHandler = (payload: Record<string, unknown>) => void
-const handlers = new Map<string, NativeHandler[]>()
+import type { RequestMap, ResponseMap } from './messages'
 
-export function sendNative(type: string, data?: Record<string, unknown>) {
+type AnyHandler = (payload: unknown) => void
+const handlers = new Map<string, AnyHandler[]>()
+
+export function sendNative<K extends keyof RequestMap>(type: K, data?: RequestMap[K]) {
   window.external.sendMessage(JSON.stringify({ type, ...data }))
 }
 
-export function onNativeMessage(type: string, handler: NativeHandler) {
+export function onNativeMessage<K extends keyof ResponseMap>(type: K, handler: (payload: ResponseMap[K]) => void) {
   if (!handlers.has(type)) handlers.set(type, [])
-  handlers.get(type)!.push(handler)
+  handlers.get(type)!.push(handler as AnyHandler)
   return () => {
     const list = handlers.get(type)
     if (list) {
-      const idx = list.indexOf(handler)
+      const idx = list.indexOf(handler as AnyHandler)
       if (idx !== -1) list.splice(idx, 1)
     }
   }
 }
 
 function dispatch(message: string) {
-  console.log('[native] incoming:', message.length > 200 ? message.substring(0, 200) + '...' : message)
+  // 仅在开发模式打印入站消息，生产构建不产生控制台噪音
+  if (import.meta.env.DEV) {
+    console.log('[native] incoming:', message.length > 200 ? message.substring(0, 200) + '...' : message)
+  }
   try {
     const json = JSON.parse(message)
     const type = json.type as string | undefined

@@ -38,7 +38,8 @@ partial class Program
     );
 
     /// <summary>
-    /// 从 accounts.json 加载已保存的账户，并迁移旧格式
+    /// 从 accounts.json 加载已保存的账户，并迁移旧格式。
+    /// 主文件解析失败（如写入中断损坏）时回退到 .bak 备份并原子写回修复
     /// </summary>
     private static void LoadAccounts()
     {
@@ -48,20 +49,43 @@ partial class Program
         if (!File.Exists(AccountsFilePath)) return;
         try
         {
-            using var json = JsonDocument.Parse(File.ReadAllText(AccountsFilePath));
-            foreach (var elem in json.RootElement.EnumerateArray())
-            {
-                var username = elem.TryGetProperty("username", out var n) ? n.GetString() : null;
-                var uuid = elem.TryGetProperty("uuid", out var u) ? u.GetString() : null;
-                var type = elem.TryGetProperty("type", out var t) ? t.GetString() ?? "offline" : "offline";
-                var skin = elem.TryGetProperty("skinModel", out var s) ? s.GetString() ?? "steve" : "steve";
-                if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(uuid))
-                    Accounts.Add(new AccountEntry(username, uuid, type, skin));
-            }
+            ParseAccountsFrom(File.ReadAllText(AccountsFilePath));
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[WARN] 账户文件损坏: {ex.Message}");
+            Log.Debug($"[WARN] 账户文件损坏: {ex.Message}");
+            // 原子写入保留的上一次成功版本（.bak）回退。
+            // 注意：解析中途失败时 Accounts 可能已部分填充，回退前清空避免重复条目
+            var bak = AccountsFilePath + ".bak";
+            if (!File.Exists(bak)) return;
+            try
+            {
+                Accounts.Clear();
+                ParseAccountsFrom(File.ReadAllText(bak));
+                Log.Debug("[WARN] 已从 .bak 备份恢复账户数据");
+                SaveAccounts(); // 原子写回，修复损坏的主文件
+            }
+            catch (Exception bakEx)
+            {
+                Log.Debug($"[WARN] .bak 备份亦不可用: {bakEx.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 解析 accounts.json 内容并填充 Accounts 列表（主文件与 .bak 共用）
+    /// </summary>
+    private static void ParseAccountsFrom(string content)
+    {
+        using var json = JsonDocument.Parse(content);
+        foreach (var elem in json.RootElement.EnumerateArray())
+        {
+            var username = elem.TryGetProperty("username", out var n) ? n.GetString() : null;
+            var uuid = elem.TryGetProperty("uuid", out var u) ? u.GetString() : null;
+            var type = elem.TryGetProperty("type", out var t) ? t.GetString() ?? "offline" : "offline";
+            var skin = elem.TryGetProperty("skinModel", out var s) ? s.GetString() ?? "steve" : "steve";
+            if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(uuid))
+                Accounts.Add(new AccountEntry(username, uuid, type, skin));
         }
     }
 
@@ -96,17 +120,18 @@ partial class Program
             catch (Exception delEx)
             {
                 // 删除失败不致命：下次启动的重复迁移会被上面的 UUID 去重挡住
-                System.Diagnostics.Debug.WriteLine($"[WARN] 旧账户文件删除失败: {delEx.Message}");
+                Log.Debug($"[WARN] 旧账户文件删除失败: {delEx.Message}");
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[WARN] 旧账户迁移失败: {ex.Message}");
+            Log.Debug($"[WARN] 旧账户迁移失败: {ex.Message}");
         }
     }
 
     /// <summary>
     /// 保存账户列表到 accounts.json（锁内快照后序列化，避免与并发读交叉）
+    /// 采用原子写入（AtomicFile）：写 .tmp → File.Replace（旧内容保留为 .bak），防断电损坏
     /// </summary>
     private static void SaveAccounts()
     {
@@ -117,12 +142,11 @@ partial class Program
             {
                 snapshot = Accounts.ToArray();
             }
-            Directory.CreateDirectory(AccountsDir);
-            File.WriteAllText(AccountsFilePath, JsonSerializer.Serialize(snapshot));
+            AtomicFile.Write(AccountsFilePath, JsonSerializer.Serialize(snapshot));
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[WARN] 保存账户失败: {ex.Message}");
+            Log.Debug($"[WARN] 保存账户失败: {ex.Message}");
         }
     }
 
@@ -214,7 +238,7 @@ partial class Program
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[WARN] 账户 {entry.Username} 认证预热失败: {ex.Message}");
+                Log.Debug($"[WARN] 账户 {entry.Username} 认证预热失败: {ex.Message}");
             }
         }
     }

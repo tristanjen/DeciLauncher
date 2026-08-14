@@ -8,7 +8,7 @@ import { selectedGame, games } from '../stores/games'
 import { selectedAccount } from '../stores/accounts'
 import { selectedJava } from '../stores/java'
 import { maxMemory, gamePath } from '../stores/games'
-import { launching, gameRunning } from '../stores/launch'
+import { launching, gameRunning, launchStage } from '../stores/launch'
 // 自定义控件
 import PrimaryButton from '../components/Controls/PrimaryButton.vue'
 import DefaultButton from '../components/Controls/DefaultButton.vue'
@@ -48,10 +48,18 @@ function cancelLaunch() {
 }
 
 /**
- * 按钮文字
+ * 按钮文字：启动中时按阶段显示进度文案（launch-progress 消息驱动）
  */
 const buttonText = computed(() => {
-  if (launching.value) return t('home.launching')
+  if (launching.value) {
+    switch (launchStage.value) {
+      case 'parse': return t('home.stage.parse')
+      case 'java': return t('home.stage.java')
+      case 'run': return t('home.stage.run')
+      case 'waiting': return t('home.stage.waiting')
+      default: return t('home.launching')
+    }
+  }
   if (gameRunning.value) return t('home.closeInstance')
   return t('home.launchInstance')
 })

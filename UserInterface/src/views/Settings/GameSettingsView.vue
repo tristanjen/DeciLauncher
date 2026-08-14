@@ -3,8 +3,8 @@
 import { computed, watch } from 'vue'
 // 前端 ↔ C# 后端消息桥（发送扫描命令）
 import { sendNative } from '../../native'
-// 全局共享状态（Java 列表、选中项、扫描标记、内存上限）
-import { javaList, selectedJava, scanning, hasScanned, maxMemory } from '../../stores/store'
+// 全局共享状态（Java 列表、选中项、扫描标记、内存上限、下载源偏好）
+import { javaList, selectedJava, scanning, hasScanned, maxMemory, downloadSource, type DownloadSource } from '../../stores/store'
 // 国际化翻译
 import { t } from '../../stores/locale'
 // 自定义控件（下拉/按钮/滑块）
@@ -43,6 +43,22 @@ const dropdownOptions = computed(() => {
 watch(maxMemory, (val) => {
   localStorage.setItem('max-memory', String(val))
 })
+
+/**
+ * 下载源下拉选项（镜像优先 / 官方优先缓慢回退 / 官方优先）
+ */
+const downloadSourceOptions = computed(() => [
+  { label: t('settings.downloadSourceMirror'), value: 'mirror' },
+  { label: t('settings.downloadSourceOfficialFirst'), value: 'official-first' },
+  { label: t('settings.downloadSourceOfficial'), value: 'official' }
+])
+
+/**
+ * 切换下载源：更新偏好（watch 在 App.vue 同步给后端）
+ */
+function onDownloadSourceChange(value: string) {
+  downloadSource.value = value as DownloadSource
+}
 </script>
 
 <template>
@@ -67,10 +83,20 @@ watch(maxMemory, (val) => {
       <span class="text-sm font-medium">{{ t('settings.instanceMemory') }}</span>
       <div class="flex items-center gap-3">
         <RangeSlider v-model="maxMemory" />
-        <span class="text-sm text-gray-700 w-16 text-right shrink-0">
+        <span class="text-sm text-gray-700 w-14 text-right shrink-0">
           {{ maxMemory >= 1024 ? (maxMemory / 1024).toFixed(1) + ' ' + t('settings.gb') : maxMemory + ' ' + t('settings.mb') }}
         </span>
       </div>
+    </label>
+    <!-- 下载源行 -->
+    <label class="flex flex-col gap-1 grow">
+      <span class="text-sm font-medium">{{ t('settings.downloadSource') }}</span>
+      <Dropdown
+        :model-value="downloadSource"
+        :options="downloadSourceOptions"
+        :placeholder="t('settings.downloadSource')"
+        @update:model-value="onDownloadSourceChange"
+      />
     </label>
   </div>
 </template>

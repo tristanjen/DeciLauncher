@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
 import { sendNative, onNativeMessage } from './native'
-import { javaList, selectedJava, scanning, hasScanned, games, scanningGames, gamePath, accounts, notification, accountBusy, selectedGame, selectedAccount, launching, gameRunning } from './stores/store'
+import { javaList, selectedJava, scanning, hasScanned, games, scanningGames, gamePath, accounts, notification, accountBusy, selectedGame, selectedAccount, launching, gameRunning, launchStage, downloadSource } from './stores/store'
 // 国际化：当前语言（后端错误消息随语言同步）
 import { locale } from './stores/locale'
 import TitleBar from './components/Controls/TitleBar.vue';
@@ -11,9 +11,12 @@ import Toast from './components/Controls/Toast.vue';
 // 语言变化时同步给 C# 后端（错误/提示消息语言即时一致）
 watch(locale, (v) => sendNative('set-language', { language: v }))
 
+// 下载源偏好变化时同步给 C# 后端（控制 DownloadManager.IsEnableMirror 镜像开关）
+watch(downloadSource, (v) => sendNative('set-download-source', { source: v }))
+
 onMounted(async () => {
   onNativeMessage('java-list', (payload) => {
-    javaList.value = (payload.javas as { path: string; version: string }[]) ?? []
+    javaList.value = payload.javas ?? []
     scanning.value = false
     hasScanned.value = true
     // 仅在当前选择失效时回退：持久化的路径仍存在则保留，否则回退自动选择/清空
@@ -30,16 +33,16 @@ onMounted(async () => {
   })
 
   onNativeMessage('game-list', (payload) => {
-    games.value = (payload.games as { id: string; isVanilla: boolean; mcVersion: string; loader: string }[]) ?? []
+    games.value = payload.games ?? []
     scanningGames.value = false
-    if (payload.path) gamePath.value = payload.path as string
+    if (payload.path) gamePath.value = payload.path
     // 自动选择：优先恢复 localStorage 中的选中项，不存在则选第一个
     if (!games.value.some(g => g.id === selectedGame.value))
       selectedGame.value = games.value[0]?.id || ''
   })
 
   onNativeMessage('account-list', (payload) => {
-    accounts.value = (payload.accounts as { username: string; uuid: string; type: string; skinModel: string }[]) ?? []
+    accounts.value = payload.accounts ?? []
     accountBusy.value = false
     // 自动选择：优先恢复 localStorage 中的选中项，不存在则选第一个
     if (!accounts.value.some(a => a.uuid === selectedAccount.value))
@@ -47,22 +50,38 @@ onMounted(async () => {
   })
 
   onNativeMessage('account-error', (payload) => {
-    notification.value = payload.message as string ?? ''
+    notification.value = payload.message ?? ''
     accountBusy.value = false
   })
 
   onNativeMessage('game-error', (payload) => {
-    notification.value = payload.message as string ?? ''
+    notification.value = payload.message ?? ''
     launching.value = false
+    launchStage.value = null
+  })
+
+  onNativeMessage('launch-progress', (payload) => {
+    launchStage.value = payload.stage
+  })
+
+  onNativeMessage('launch-warning', (payload) => {
+    // 非阻断警告（如 Java 版本过低）：仅提示，不影响启动流程
+    notification.value = payload.message ?? ''
+  })
+
+  onNativeMessage('crash-analysis', (payload) => {
+    notification.value = payload.message ?? ''
   })
 
   onNativeMessage('game-launched', () => {
     launching.value = false
+    launchStage.value = null
     gameRunning.value = true
   })
 
   onNativeMessage('game-exited', () => {
     launching.value = false
+    launchStage.value = null
     gameRunning.value = false
   })
 
@@ -70,6 +89,8 @@ onMounted(async () => {
   await new Promise(r => requestAnimationFrame(r))
   // 先把当前语言同步给后端，再发起扫描（保证后端错误消息语言一致）
   sendNative('set-language', { language: locale.value })
+  // 同步下载源偏好（镜像/官方开关）
+  sendNative('set-download-source', { source: downloadSource.value })
   sendNative('scan-java')
   sendNative('scan-games', { path: gamePath.value })
   sendNative('list-accounts')

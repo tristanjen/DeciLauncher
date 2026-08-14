@@ -21,6 +21,10 @@ export const enUS: Record<string, string> = {
   'home.launching': 'Launching...',
   'home.closeInstance': 'Close game',
   'home.launchInstance': 'Launch game',
+  'home.stage.parse': 'Parsing game version...',
+  'home.stage.java': 'Locating Java runtime...',
+  'home.stage.run': 'Starting game...',
+  'home.stage.waiting': 'Waiting for game window...',
 
   // Games
   'games.directory': 'Instance directory: {path}',
@@ -57,6 +61,10 @@ export const enUS: Record<string, string> = {
   'settings.instanceMemory': 'Game memory',
   'settings.gb': 'GB',
   'settings.mb': 'MB',
+  'settings.downloadSource': 'Download source',
+  'settings.downloadSourceMirror': 'Prefer mirror source',
+  'settings.downloadSourceOfficialFirst': 'Prefer official source, fall back to mirror when slow',
+  'settings.downloadSourceOfficial': 'Prefer official source',
   'settings.language': 'Language',
   'settings.langZhCN': '简体中文',
   'settings.langEnUS': 'English'

@@ -1,0 +1,29 @@
+# 代码风格约定（dotnet format 依据此文件统一 C# 风格）
+# 注意：本文件刻意保持与项目现有代码风格一致（lambda 花括号同行、链式调用不重排），
+# 避免 dotnet format 对存量文件产生大规模格式噪音 diff。
+root = true
+
+# ===== 全局默认 =====
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# ===== C# =====
+[*.cs]
+# 排序 System using 在第三方之后（与项目现有风格一致：先第三方再 System）
+dotnet_sort_system_directives_first = false
+# 命名空间声明：file-scoped（与项目现状一致）
+csharp_style_namespace_declarations = file_scoped
+csharp_indent_case_contents = true
+csharp_space_after_cast = false
+
+# ===== 其他语言 =====
+[*.{ts,tsx,vue,js,json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

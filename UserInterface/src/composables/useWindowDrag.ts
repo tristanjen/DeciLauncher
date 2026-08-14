@@ -1,16 +1,8 @@
 // 窗口拖拽 Composable — 封装与 Photino C# 后端的拖拽通信逻辑
 // 使用 requestAnimationFrame 节流，限制消息频率为 60fps
 import { onMounted, onUnmounted } from 'vue'
-
-/**
- * 向 C# 后端发送类型化 JSON 消息
- * @param type 消息类型（"drag-start" | "drag" | "close" | "minimize"）
- * @param data 附加数据（可选，如 dx/dy）
- */
-function send(type: string, data?: Record<string, unknown>) {
-  // 通过 Photino 的 external.sendMessage 将消息序列化为 JSON 并发送
-  window.external.sendMessage(JSON.stringify({ type, ...data }))
-}
+// 前端 ↔ 后端消息桥（类型契约见 messages.ts）
+import { sendNative } from '../native'
 
 /**
  * 窗口拖拽逻辑 Hook
@@ -45,7 +37,7 @@ export function useWindowDrag() {
     prevScreenX = e.screenX
     prevScreenY = e.screenY
     // 通知 C# 后端开始拖拽（Windows 启动原生拖拽，其他平台记录初始位置）
-    send('drag-start')
+    sendNative('drag-start')
   }
 
   /**
@@ -73,7 +65,7 @@ export function useWindowDrag() {
         // 如果没有有效位移，跳过发送
         if (pendingDx === 0 && pendingDy === 0) return
         // 发送本帧累积的位移增量到 C# 后端
-        send('drag', { dx: pendingDx, dy: pendingDy })
+        sendNative('drag', { dx: pendingDx, dy: pendingDy })
         // 重置累积器，为下一帧准备
         pendingDx = 0
         pendingDy = 0
@@ -107,6 +99,6 @@ export function useWindowDrag() {
     document.removeEventListener('mouseup', onMouseUp)
   })
 
-  // 返回需要暴露给 TitleBar 组件的方法
-  return { onMouseDown, send }
+  // 返回需要暴露给 TitleBar 组件的方法（send 复用消息桥的 sendNative，类型化）
+  return { onMouseDown, send: sendNative }
 }

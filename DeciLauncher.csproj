@@ -21,14 +21,20 @@
         <Nullable>enable</Nullable>
         <!-- 使用默认语言版本（.NET 10 默认对应 C# 14） -->
         <LangVersion>default</LangVersion>
+        <!-- 启用最新静态分析规则（CA 系列），发现问题即时修复或显式抑制 -->
+        <AnalysisLevel>latest</AnalysisLevel>
+        <!-- IL2026：PublishTrimmed 下反射序列化必然告警。本启动器的全部前端消息依赖反射序列化
+             匿名对象（JsonSerializerIsReflectionEnabledByDefault 已显式覆盖为 true），
+             且 TrimmerRootAssembly 已保留 MinecraftLaunch 反射路径，此为显式设计决策而非遗漏 -->
+        <NoWarn>$(NoWarn);IL2026</NoWarn>
         <!-- 生成嵌入式文件清单（用于从程序集中提供静态资源） -->
         <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
         <!-- 发布为单文件应用（含自解压，原生 DLL 打包进 exe） -->
         <PublishSingleFile>true</PublishSingleFile>
         <!-- 原生库嵌入自解压包（消除外部 .dll 文件） -->
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-        <!-- 自包含发布：运行时内嵌，无需用户安装 .NET 运行时 -->
-        <SelfContained>true</SelfContained>
+        <!-- 自包含发布：运行时内嵌，无需用户安装 .NET 运行时（仅发布时生效，普通 build/test 保持框架依赖） -->
+        <SelfContained Condition="'$(IsPublishing)' == 'true'">true</SelfContained>
         <!-- 启用 IL 裁剪（partial 模式：仅裁剪明确标记的程序集，兼容反射与 ASP.NET 托管） -->
         <PublishTrimmed>true</PublishTrimmed>
         <!-- PublishTrimmed 会自动把 JsonSerializerIsReflectionEnabledByDefault 注入为 false，
@@ -81,9 +87,27 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- 裁剪器根程序集：保留反射路径所需的程序集（JavaPath/Process 反射赋值） -->
+        <!--
+          主项目默认 glob 会把嵌套的 DeciLauncher.Tests 目录（含其 bin/obj 生成文件）一并编译，
+          导致测试项目的 AssemblyInfo 与主项目重复（CS0579）。显式排除整个测试项目目录。
+        -->
+        <Compile Remove="DeciLauncher.Tests\**" />
+        <EmbeddedResource Remove="DeciLauncher.Tests\**" />
+        <Content Remove="DeciLauncher.Tests\**" />
+        <None Remove="DeciLauncher.Tests\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- 裁剪器根程序集：保留 MinecraftLaunch 库所需的程序集。
+             启动器的反射赋值（JavaEntry.JavaPath / MinecraftProcess.Process，均为 init-only 属性）
+             已收敛到 Launching/MinecraftLaunchFallbacks.cs 单一入口 -->
         <TrimmerRootAssembly Include="MinecraftLaunch" />
         <TrimmerRootAssembly Include="MinecraftLaunch.Base" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- 允许测试程序集访问 internal 成员（Launching/ 下的纯函数类） -->
+        <InternalsVisibleTo Include="DeciLauncher.Tests" />
     </ItemGroup>
 
 </Project>

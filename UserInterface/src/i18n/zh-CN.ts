@@ -21,6 +21,10 @@ export const zhCN: Record<string, string> = {
   'home.launching': '启动中...',
   'home.closeInstance': '关闭游戏',
   'home.launchInstance': '启动游戏',
+  'home.stage.parse': '正在解析游戏版本...',
+  'home.stage.java': '正在查找 Java 运行时...',
+  'home.stage.run': '正在启动游戏...',
+  'home.stage.waiting': '正在等待游戏窗口...',
 
   // 游戏页
   'games.directory': '实例目录：{path}',
@@ -57,6 +61,10 @@ export const zhCN: Record<string, string> = {
   'settings.instanceMemory': '游戏内存',
   'settings.gb': 'GB',
   'settings.mb': 'MB',
+  'settings.downloadSource': '下载源',
+  'settings.downloadSourceMirror': '尽量使用镜像源',
+  'settings.downloadSourceOfficialFirst': '优先使用官方源，在加载缓慢时换用镜像源',
+  'settings.downloadSourceOfficial': '尽量使用官方源',
   'settings.language': '语言',
   'settings.langZhCN': '简体中文',
   'settings.langEnUS': 'English'

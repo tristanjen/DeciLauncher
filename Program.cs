@@ -60,6 +60,9 @@ partial class Program
             settings.MaxThread = 64;
             settings.MaxFragment = 32;
             settings.MaxRetryCount = 4;
+            // 下载源默认「优先官方源」：BMCLAPI 镜像开关默认关闭，
+            // 前端启动后按用户偏好（set-download-source 消息）覆盖；
+            // 默认值与前端 stores/downloadSource.ts 的 DEFAULT_SOURCE 保持一致
             settings.IsEnableMirror = false;
             settings.IsEnableFragment = false;
             settings.UserAgent = "DeciLauncher/1.0.0-beta.1";
@@ -150,7 +153,7 @@ partial class Program
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FATAL] Web 服务器启动失败: {ex}");
+                Log.Debug($"[FATAL] Web 服务器启动失败: {ex}");
                 ShowFatalError(FL(
                     $"无法在 127.0.0.1:{port} 启动本地服务器，请确认端口未被占用。\n\n{ex.Message}",
                     $"Failed to start the local server on 127.0.0.1:{port}. Make sure the port is not in use.\n\n{ex.Message}"));
@@ -243,6 +246,7 @@ partial class Program
         }
         catch
         {
+            // 连接失败/超时/证书错误等一律视为「服务器不可达」，调用方据此提示用户启动 pnpm dev
             return false;
         }
     }

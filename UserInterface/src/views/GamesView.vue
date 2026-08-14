@@ -26,7 +26,7 @@ let unsub: (() => void) | undefined
 
 onMounted(() => {
   unsub = onNativeMessage('game-path-selected', (payload) => {
-    const path = payload.path as string
+    const path = payload.path
     if (path) {
       gamePath.value = path
       localStorage.setItem('game-path-pref', path)
