@@ -99,6 +99,16 @@ partial class Program
         string javaPath, int maxMemory,
         string minecraftPath)
     {
+        // 安全校验：gameId 仅允许版本目录名（拒绝路径分隔符与 .. 防路径逃逸）。
+        // 必须在防重入检查之前：校验失败直接返回，此时 LaunchActive 尚未置位，
+        // 否则 LaunchActive 只能在 finally 复位而此路径不会进入 try
+        if (string.IsNullOrEmpty(gameId) ||
+            gameId.Contains('/') || gameId.Contains('\\') || gameId.Contains(".."))
+        {
+            TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = L("无效的游戏版本 ID", "Invalid game version ID") }));
+            return;
+        }
+
         // 防重入：检查-设置原子完成，覆盖「RunningProcess 检查」与「RunAsync 赋值」之间的 await 窗口，
         // 两条并发的 launch-game 消息只有第一条能进入启动流程
         if (Interlocked.CompareExchange(ref LaunchActive, 1, 0) != 0)

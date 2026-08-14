@@ -78,6 +78,12 @@
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
+    <PropertyGroup>
+        <!-- CI 构建标记：由命令行 -p:CI_BUILD=true 注入编译常量，
+             使 DECILAUNCHER_PORT/TOKEN 环境变量仅在 CI 产物上生效（不可被用户环境变量伪造） -->
+        <DefineConstants Condition="'$(CI_BUILD)' == 'true'">$(DefineConstants);CI_BUILD</DefineConstants>
+    </PropertyGroup>
+
     <ItemGroup>
         <!--
           将 v17 输出目录下的所有文件作为嵌入式资源

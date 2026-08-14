@@ -17,9 +17,9 @@ partial class Program
 {
     // 编译时常量：DEBUG 模式下为 true，RELEASE 模式下为 false
 #if DEBUG
-    public static bool IsDebugMode = true;
+    public static readonly bool IsDebugMode = true;
 #else
-    public static bool IsDebugMode = false;
+    public static readonly bool IsDebugMode = false;
 #endif
 
     // ===== 语言状态（前端 set-language 消息同步） =====
@@ -191,8 +191,9 @@ partial class Program
 
     /// <summary>
     /// 从环境变量读取端口：默认 0（随机端口）。
-    /// DECILAUNCHER_PORT 仅在 CI（GITHUB_ACTIONS）或 DEBUG 构建下生效，供测试与诊断固定端口；
-    /// 普通用户运行时始终随机，避免恶意进程通过用户环境变量预设已知端口
+    /// DECILAUNCHER_PORT 仅在 CI 构建（-p:CI_BUILD=true 注入编译常量）或 DEBUG 构建下生效，
+    /// 供测试与诊断固定端口；普通用户运行时始终随机，避免恶意进程通过用户环境变量
+    /// （如伪造 GITHUB_ACTIONS）预设已知端口
     /// </summary>
     private static int ReadConfiguredPort()
     {
@@ -203,7 +204,7 @@ partial class Program
 
     /// <summary>
     /// 从环境变量读取访问 token：默认每次启动随机生成。
-    /// DECILAUNCHER_TOKEN 仅在 CI/DEBUG 下生效，且必须匹配 [A-Za-z0-9_-]{8,64}，
+    /// DECILAUNCHER_TOKEN 仅在 CI 构建/DEBUG 下生效，且必须匹配 [A-Za-z0-9_-]{8,64}，
     /// 防止特殊字符破坏 URL 拼接或弱 token 被预置
     /// </summary>
     private static string ReadConfiguredToken()
@@ -219,10 +220,15 @@ partial class Program
     }
 
     /// <summary>
-    /// 环境变量覆盖仅在 CI runner 或 DEBUG 构建下允许
+    /// 环境变量覆盖仅在 CI 构建（编译期常量 CI_BUILD，不可被用户环境变量伪造）或 DEBUG 构建下允许。
+    /// 此前依赖 GITHUB_ACTIONS 环境变量，任意同机进程可预置该变量伪造成 CI 环境
     /// </summary>
     private static bool AllowEnvironmentOverride() =>
-        IsDebugMode || Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+#if CI_BUILD
+        true;
+#else
+        IsDebugMode;
+#endif
 
     /// <summary>
     /// 恒定时间字符串比较，避免 token/session 比较的时序侧信道

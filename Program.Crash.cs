@@ -35,6 +35,9 @@ partial class Program
                 .FirstOrDefault();
             if (latest == null) return false;
 
+            // 拒绝符号链接/reparse point（避免读取任意位置文件并把片段回显到 UI）
+            if (latest.LinkTarget != null) return false;
+
             var analyzer = new LogAnalyzer(game, new[] { latest.FullName });
             var result = analyzer.Analyze();
             if (result.CrashReasons.Count == 0 && result.SuspiciousMods.Count == 0) return false;

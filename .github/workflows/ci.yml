@@ -68,6 +68,11 @@ jobs:
       - run: dotnet build -c Release
       - run: dotnet test -c Release
       # 显式指定主项目: 无参数 publish 会作用于 slnx 并尝试发布测试项目(触发 NETSDK1151)
+      # smoke 专用产物(仅 Windows 消费): CI_BUILD=true 注入编译常量, 使 DECILAUNCHER_PORT/TOKEN 仅在测试产物上生效
+      - name: Publish smoke build (Windows)
+        if: runner.os == 'Windows' && matrix.rid == 'win-x64'
+        run: dotnet publish DeciLauncher.csproj -c Release -r ${{ matrix.rid }} -o "${{ env.PUBLISH_DIR }}-smoke" -p:CI_BUILD=true
+      # 干净发布产物(不带 CI_BUILD): 打包分发给用户的环境变量门禁保持关闭
       - run: dotnet publish DeciLauncher.csproj -c Release -r ${{ matrix.rid }}
 
       # ===== Windows: smoke test（验证裁剪后 Kestrel + 内嵌资源 + 访问控制可用） =====
@@ -79,7 +84,7 @@ jobs:
           DECILAUNCHER_PORT: 8000
           DECILAUNCHER_TOKEN: smoke-test-token
         run: |
-          $exe = "$env:PUBLISH_DIR/Deci Launcher.exe"
+          $exe = "$env:PUBLISH_DIR-smoke/Deci Launcher.exe"
           $p = Start-Process $exe -PassThru
           try {
             Start-Sleep -Seconds 10
