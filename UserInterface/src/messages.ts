@@ -18,6 +18,8 @@ export interface RequestMap {
   'create-offline-account': { name: string }
   'delete-offline-account': { uuid: string }
   'pick-game-path': undefined
+  /** 关于页：请求应用信息（后端回发 app-info） */
+  'get-app-info': undefined
   'launch-game': {
     gameId: string
     accountUuid: string
@@ -41,6 +43,8 @@ export interface ResponseMap {
   'game-path-selected': { path: string }
   'account-list': { accounts: AccountEntry[] }
   'account-error': { message: string }
+  /** 应用信息（版本号来自后端程序集，与 csproj Version 一致） */
+  'app-info': { version: string }
   'game-error': { message: string }
   'game-launched': undefined
   'game-exited': undefined

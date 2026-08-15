@@ -11,6 +11,8 @@ import { t } from '../../stores/locale'
 import Dropdown from '../../components/Controls/Dropdown.vue'
 import DefaultButton from '../../components/Controls/DefaultButton.vue'
 import RangeSlider from '../../components/Controls/RangeSlider.vue'
+// 卡片容器（设置内容分组外观）
+import Card from '../../components/Controls/Card.vue'
 
 /**
  * 向 C# 后端发起 Java 运行时扫描
@@ -62,41 +64,36 @@ function onDownloadSourceChange(value: string) {
 </script>
 
 <template>
-  <div class="grow flex flex-col gap-4">
-    <!-- Java 运行时行 -->
-    <div class="flex items-end gap-2">
-      <label class="flex flex-col gap-1 grow">
-        <span class="text-sm font-medium">{{ t('settings.javaRuntime') }}</span>
-        <Dropdown v-model="selectedJava" :options="dropdownOptions" :placeholder="t('settings.notScannedYet')" />
-      </label>
-      <DefaultButton
-        :loading="scanning"
-        :loading-text="t('settings.scanning')"
-        :disabled="scanning"
-        @click="scanJava"
-      >
-        {{ t('settings.scan') }}
-      </DefaultButton>
-    </div>
-    <!-- 游戏内存行 -->
-    <label class="flex flex-col gap-1">
-      <span class="text-sm font-medium">{{ t('settings.instanceMemory') }}</span>
-      <div class="flex items-center gap-3">
-        <RangeSlider v-model="maxMemory" />
-        <span class="text-sm text-gray-700 w-14 text-right shrink-0">
-          {{ maxMemory >= 1024 ? (maxMemory / 1024).toFixed(1) + ' ' + t('settings.gb') : maxMemory + ' ' + t('settings.mb') }}
-        </span>
+  <div class="grow flex flex-col">
+    <Card class="flex flex-col gap-4">
+      <!-- Java 运行时行 -->
+      <div class="flex items-end gap-2">
+        <label class="flex flex-col gap-1 grow">
+          <span class="text-sm font-medium">{{ t('settings.javaRuntime') }}</span>
+          <Dropdown v-model="selectedJava" :options="dropdownOptions" :placeholder="t('settings.notScannedYet')" />
+        </label>
+        <DefaultButton :loading="scanning" :loading-text="t('settings.scanning')" :disabled="scanning"
+          @click="scanJava">
+          {{ t('settings.scan') }}
+        </DefaultButton>
       </div>
-    </label>
-    <!-- 下载源行 -->
-    <label class="flex flex-col gap-1 grow">
-      <span class="text-sm font-medium">{{ t('settings.downloadSource') }}</span>
-      <Dropdown
-        :model-value="downloadSource"
-        :options="downloadSourceOptions"
-        :placeholder="t('settings.downloadSource')"
-        @update:model-value="onDownloadSourceChange"
-      />
-    </label>
+      <!-- 游戏内存行 -->
+      <label class="flex flex-col gap-1">
+        <span class="text-sm font-medium">{{ t('settings.instanceMemory') }}</span>
+        <div class="flex items-center gap-3">
+          <RangeSlider v-model="maxMemory" />
+          <span class="text-sm text-gray-700 w-14 text-right shrink-0">
+            {{ maxMemory >= 1024 ? (maxMemory / 1024).toFixed(1) + ' ' + t('settings.gb') : maxMemory + ' ' +
+              t('settings.mb') }}
+          </span>
+        </div>
+      </label>
+      <!-- 下载源行 -->
+      <label class="flex flex-col gap-1 grow">
+        <span class="text-sm font-medium">{{ t('settings.downloadSource') }}</span>
+        <Dropdown :model-value="downloadSource" :options="downloadSourceOptions"
+          :placeholder="t('settings.downloadSource')" @update:model-value="onDownloadSourceChange" />
+      </label>
+    </Card>
   </div>
 </template>

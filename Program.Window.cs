@@ -1,5 +1,7 @@
 // 窗口尺寸和位置坐标类型
 using System.Drawing;
+// 反射（读取程序集 InformationalVersion 用于关于页版本号）
+using System.Reflection;
 // JSON 反序列化（解析前端发送的消息）
 using System.Text.Json;
 // Photino 桌面窗口框架
@@ -142,6 +144,18 @@ partial class Program
                         DragY += dy;
                         // 移动窗口到新位置（允许跨显示器）
                         window.MoveTo((int)Math.Round(DragX), (int)Math.Round(DragY), true);
+                        return;
+                    }
+
+                    // ---- 获取应用信息（关于页：版本号取自程序集，与 csproj Version 单点同步） ----
+                    if (type == "get-app-info")
+                    {
+                        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+                        var infoVersion = assembly
+                            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                        // SourceLink 会在版本后追加 +commitHash（如 1.0.0-beta.1+abc123），截断掉
+                        var version = (infoVersion ?? "1.0.0").Split('+')[0];
+                        TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "app-info", version }));
                         return;
                     }
 

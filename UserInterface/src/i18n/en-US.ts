@@ -67,5 +67,12 @@ export const enUS: Record<string, string> = {
   'settings.downloadSourceOfficial': 'Prefer official source',
   'settings.language': 'Language',
   'settings.langZhCN': '简体中文',
-  'settings.langEnUS': 'English'
+  'settings.langEnUS': 'English',
+
+  // About
+  'about.version': 'v{version}',
+  'about.author': 'Author: Tristan Jen',
+  'about.company': 'Company: Decibyte',
+  'about.license': 'License: GPL-3.0',
+  'about.thanksTitle': 'Open Source Projects'
 }

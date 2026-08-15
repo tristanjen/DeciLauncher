@@ -17,16 +17,18 @@ onMounted(async () => {
 <template>
   <div class="flex gap-3">
     <Transition name="sidebar-slide">
-      <Card v-if="sidebarVisible" hover-shadow class="flex flex-col gap-2 w-50">
+      <Card v-if="sidebarVisible" hover-shadow class="flex flex-col items-center gap-2 w-50 h-107 fixed">
         <NavLink to="/settings/gameSettings" :label="t('settings.instanceSettings')" size="sidebar" />
         <NavLink to="/settings/LauncherSettings" :label="t('settings.launcherSettings')" size="sidebar" />
         <NavLink to="/settings/about" :label="t('settings.about')" size="sidebar" />
       </Card>
     </Transition>
+    <!-- 占位元素：fixed 脱离文档流后，保持右侧内容 Card 的起始位置不变 -->
+    <div v-if="sidebarVisible" class="w-50 h-107" aria-hidden="true" />
     <Transition name="content-drop" mode="out-in" appear>
-      <Card hover-shadow class="grow flex flex-col" :key="$route.fullPath">
+      <div class="grow flex flex-col h-min" :key="$route.fullPath">
         <RouterView />
-      </Card>
+      </div>
     </Transition>
   </div>
 </template>

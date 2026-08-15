@@ -104,7 +104,8 @@ onMounted(async () => {
       id="main-card">
       <TitleBar />
       <Transition name="fade" mode="out-in">
-        <RouterView :key="$route.matched[0]?.name" class="grow p-3 rounded-b-lg overflow-y-auto min-h-0 scroll-smooth" />
+        <RouterView :key="$route.matched[0]?.name"
+          class="grow p-3 rounded-b-lg overflow-y-auto scroll-smooth" />
       </Transition>
       <Notification />
       <Toast />

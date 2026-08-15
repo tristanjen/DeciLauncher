@@ -5,6 +5,8 @@ import { computed } from 'vue'
 import { locale, t, type Locale } from '../../stores/locale'
 // 自定义控件
 import Dropdown from '../../components/Controls/Dropdown.vue'
+// 卡片容器（设置内容分组外观）
+import Card from '../../components/Controls/Card.vue'
 
 /**
  * 语言下拉选项：原生语言名（不翻译语言名本身）
@@ -23,16 +25,14 @@ function onLanguageChange(value: string) {
 </script>
 
 <template>
-  <div class="grow flex flex-col gap-4">
-    <!-- 语言行 -->
-    <label class="flex flex-col gap-1 grow">
-      <span class="text-sm font-medium">{{ t('settings.language') }}</span>
-      <Dropdown
-        :model-value="locale"
-        :options="languageOptions"
-        :placeholder="t('settings.language')"
-        @update:model-value="onLanguageChange"
-      />
-    </label>
+  <div class="grow flex flex-col">
+    <Card class="flex flex-col gap-4">
+      <!-- 语言行 -->
+      <label class="flex flex-col gap-1 grow">
+        <span class="text-sm font-medium">{{ t('settings.language') }}</span>
+        <Dropdown :model-value="locale" :options="languageOptions" :placeholder="t('settings.language')"
+          @update:model-value="onLanguageChange" />
+      </label>
+    </Card>
   </div>
 </template>

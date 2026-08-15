@@ -67,5 +67,12 @@ export const zhCN: Record<string, string> = {
   'settings.downloadSourceOfficial': '尽量使用官方源',
   'settings.language': '语言',
   'settings.langZhCN': '简体中文',
-  'settings.langEnUS': 'English'
+  'settings.langEnUS': 'English',
+
+  // 关于页
+  'about.version': 'v{version}',
+  'about.author': '作者：Tristan Jen',
+  'about.company': '公司：Decibyte',
+  'about.license': '许可证：GPL-3.0',
+  'about.thanksTitle': '开源项目'
 }
