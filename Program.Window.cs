@@ -154,7 +154,11 @@ partial class Program
                         var infoVersion = assembly
                             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
                         // SourceLink 会在版本后追加 +commitHash（如 1.0.0-beta.1+abc123），截断掉
-                        var version = (infoVersion ?? "1.0.0").Split('+')[0];
+                        var raw = (infoVersion ?? "1.0.0").Split('+')[0];
+                        // 展示格式：1.0.0-beta.2 → 1.0.0 Beta 2
+                        var version = raw
+                            .Replace("-beta.", " Beta ")
+                            .Replace("-alpha.", " Alpha ");
                         TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "app-info", version }));
                         return;
                     }

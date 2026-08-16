@@ -70,7 +70,7 @@ export const enUS: Record<string, string> = {
   'settings.langEnUS': 'English',
 
   // About
-  'about.version': 'v{version}',
+  'about.version': '{version}',
   'about.author': 'Author: Tristan Jen',
   'about.company': 'Company: Decibyte',
   'about.license': 'License: GPL-3.0',

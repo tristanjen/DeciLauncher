@@ -70,7 +70,7 @@ export const zhCN: Record<string, string> = {
   'settings.langEnUS': 'English',
 
   // 关于页
-  'about.version': 'v{version}',
+  'about.version': '{version}',
   'about.author': '作者：Tristan Jen',
   'about.company': '公司：Decibyte',
   'about.license': '许可证：GPL-3.0',

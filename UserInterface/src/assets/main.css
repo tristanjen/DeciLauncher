@@ -12,7 +12,7 @@ body {
   color: #333333;
 }
 
-/* 自定义滚动条样式（WebKit/Chromium 兼容，匹配绿色主题） */
+/* 自定义滚动条样式（WebKit/Chromium 兼容，匹配绿色主题，始终显示） */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
