@@ -13,6 +13,39 @@ import RadioItem from '../components/Controls/RadioItem.vue'
 import Card from '../components/Controls/Card.vue'
 // 国际化翻译
 import { t } from '../stores/locale'
+// 内置加载器 logo（官方品牌图标，许可见 loaders/README.md）
+import fabricLogo from '../assets/images/loaders/fabric.png'
+import quiltLogo from '../assets/images/loaders/quilt.svg'
+import forgeIcon from '../assets/images/loaders/forge.webp'
+import neoforgeLogo from '../assets/images/loaders/neoforge.png'
+// 内置方块图标（成品像素风，HMCL/PCL 同款做法）
+import grassIcon from '../assets/images/blocks/grass.png'
+import commandIcon from '../assets/images/blocks/command.gif'
+// 图标回退（未知图标类型时的应用图标）
+import fallbackIcon from '../assets/images/favicon.svg'
+
+// loaderIcon → 内置图标资源映射（键需与后端 InstanceIconResolver 返回的标识一致）
+const loaderLogos: Record<string, string> = {
+  // 加载器
+  Fabric: fabricLogo,
+  Quilt: quiltLogo,
+  Forge: forgeIcon,
+  NeoForge: neoforgeLogo,
+  // 方块
+  grass: grassIcon,
+  command: commandIcon,
+}
+
+/**
+ * 根据内置图标标识取图片；未知标识回退应用图标。
+ * 方块图标为像素风（image-rendering: pixelated），加载器 logo 平滑缩放。
+ */
+function gameIcon(loaderIcon: string) {
+  const src = (loaderIcon && loaderLogos[loaderIcon]) || fallbackIcon
+  // grass/command/anvil 方块图标像素风渲染，其余（加载器 logo / 回退）平滑缩放
+  const pixelated = loaderIcon === 'grass' || loaderIcon === 'command' || loaderIcon === 'anvil'
+  return { src, pixelated }
+}
 
 // 原版游戏（isVanilla = true）
 const vanillaGames = computed(() => games.value.filter(g => g.isVanilla))
@@ -91,10 +124,15 @@ function toggleGame(id: string) {
         <Card v-if="vanillaGames.length > 0" class="flex flex-col gap-2">
           <span class="text-xs text-[#333] font-medium">{{ t('games.vanilla') }}</span>
           <div v-for="g in vanillaGames" :key="g.id"
-            class="flex items-center cursor-pointer"
+            class="flex items-center gap-2 cursor-pointer"
             :class="switchLocked ? 'opacity-40 cursor-not-allowed' : ''"
             @click="toggleGame(g.id)">
             <RadioItem :selected="selectedGame === g.id" />
+            <img
+              class="w-8 h-8 shrink-0 rounded-sm"
+              :class="gameIcon(g.loaderIcon).pixelated ? 'image-pixelated' : ''"
+              :src="gameIcon(g.loaderIcon).src"
+              alt="" />
             <div class="flex flex-col">
               <span class="text-sm">{{ g.id }}</span>
               <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }}</span>
@@ -105,10 +143,15 @@ function toggleGame(id: string) {
         <Card v-if="moddedGames.length > 0" class="flex flex-col gap-2">
           <span class="text-xs text-[#333] font-medium">{{ t('games.modded') }}</span>
           <div v-for="g in moddedGames" :key="g.id"
-            class="flex items-center cursor-pointer"
+            class="flex items-center gap-2 cursor-pointer"
             :class="switchLocked ? 'opacity-40 cursor-not-allowed' : ''"
             @click="toggleGame(g.id)">
             <RadioItem :selected="selectedGame === g.id" />
+            <img
+              class="w-8 h-8 shrink-0 rounded-sm"
+              :class="gameIcon(g.loaderIcon).pixelated ? 'image-pixelated' : ''"
+              :src="gameIcon(g.loaderIcon).src"
+              alt="" />
             <div class="flex flex-col">
               <span class="text-sm">{{ g.id }}</span>
               <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }} / {{ g.loader }}</span>
@@ -125,6 +168,10 @@ function toggleGame(id: string) {
 </template>
 
 <style scoped>
+.image-pixelated {
+  image-rendering: pixelated;
+}
+
 .content-drop-enter-active {
   animation: content-drop 0.3s cubic-bezier(0.42, 1.5, 0.58, 1);
 }

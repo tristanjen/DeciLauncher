@@ -21,10 +21,10 @@ export const zhCN: Record<string, string> = {
   'home.launching': '启动中...',
   'home.closeInstance': '关闭游戏',
   'home.launchInstance': '启动游戏',
-  'home.stage.parse': '正在解析游戏版本...',
-  'home.stage.java': '正在查找 Java 运行时...',
-  'home.stage.run': '正在启动游戏...',
-  'home.stage.waiting': '正在等待游戏窗口...',
+  'home.stage.parse': '解析游戏版本...',
+  'home.stage.java': '查找 Java 运行时...',
+  'home.stage.run': '启动中...',
+  'home.stage.waiting': '等待游戏窗口...',
 
   // 游戏页
   'games.directory': '实例目录：{path}',

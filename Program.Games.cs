@@ -74,12 +74,15 @@ partial class Program
                             loader = string.Join(" + ", loaders);
                         }
 
+                        var loaderIcon = InstanceIconResolver.Resolve(game);
+
                         games.Add(new
                         {
                             id = game.Id,
                             isVanilla = game.IsVanilla,
                             mcVersion = game.Version.VersionId,
-                            loader
+                            loader,
+                            loaderIcon
                         });
                     }
                     catch (Exception ex)

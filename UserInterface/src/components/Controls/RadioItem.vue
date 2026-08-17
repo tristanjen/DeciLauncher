@@ -5,7 +5,7 @@ defineProps<{
 </script>
 
 <template>
-  <svg class="size-4 shrink-0 mr-2" viewBox="0 0 12 12">
+  <svg class="size-4 shrink-0" viewBox="0 0 12 12">
     <circle cx="6" cy="6" r="5" :fill="selected ? '#52C41A' : 'none'"
       stroke="#B7EB8F" stroke-width="1.5"/>
     <circle v-if="selected" class="radio-dot" cx="6" cy="6" r="2" fill="#fff"/>

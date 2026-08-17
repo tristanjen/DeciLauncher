@@ -15,6 +15,8 @@ import RadioItem from '../components/Controls/RadioItem.vue'
 import Card from '../components/Controls/Card.vue'
 import TextInput from '../components/Controls/TextInput.vue'
 import IconButton from '../components/Controls/IconButton.vue'
+// 账户头像（Steve，对所有账户类型统一展示）
+import steveAvatar from '../assets/images/steve.png'
 
 // 新账户名称输入
 const newName = ref('')
@@ -112,13 +114,8 @@ function typeColor(type: string): string {
       <DefaultButton disabled>
         {{ t('accounts.loginThirdParty') }}
       </DefaultButton>
-      <DefaultButton
-        class="ml-auto"
-        :loading="accountBusy"
-        :loading-text="t('common.refreshing')"
-        :disabled="accountBusy"
-        @click="refreshAccounts"
-      >
+      <DefaultButton class="ml-auto" :loading="accountBusy" :loading-text="t('common.refreshing')"
+        :disabled="accountBusy" @click="refreshAccounts">
         {{ t('common.refresh') }}
       </DefaultButton>
     </div>
@@ -126,14 +123,18 @@ function typeColor(type: string): string {
     <Transition name="content-drop" appear>
       <div v-if="!accountBusy" key="accounts" class="grow flex flex-col gap-2">
         <!-- 账户列表 -->
-        <Card v-for="a in accounts" :key="a.uuid" padding="px-3 py-2" clickable class="flex items-center"
+        <Card v-for="a in accounts" :key="a.uuid" padding="px-3 py-2" clickable class="flex gap-2 items-center"
           @click="toggleAccount(a.uuid)">
           <!-- 单选圆 -->
           <RadioItem :selected="selectedAccount === a.uuid" />
-          <!-- 用户名 -->
-          <span class="text-sm">{{ a.username }}</span>
-          <!-- 账户类型标签 -->
-          <span class="text-xs ml-2 leading-none" :class="typeColor(a.type)">{{ typeLabel(a.type) }}</span>
+          <!-- Steve 头像 -->
+          <img class="w-8 h-8 shrink-0 image-pixelated shadow rounded-sm" :src="steveAvatar" alt="" />
+          <div class="flex flex-col">
+            <!-- 用户名 -->
+            <span class="text-sm">{{ a.username }}</span>
+            <!-- 账户类型标签 -->
+            <span class="text-xs" :class="typeColor(a.type)">{{ typeLabel(a.type) }}</span>
+          </div>
           <!-- 复制 UUID 按钮 -->
           <IconButton class="ml-auto" variant="list" @click="copyUuid(a.uuid)">
             <svg class="size-3" viewBox="0 0 12 12">
@@ -169,6 +170,10 @@ function typeColor(type: string): string {
 </template>
 
 <style scoped>
+.image-pixelated {
+  image-rendering: pixelated;
+}
+
 .content-drop-enter-active {
   animation: content-drop 0.3s cubic-bezier(0.42, 1.5, 0.58, 1);
 }

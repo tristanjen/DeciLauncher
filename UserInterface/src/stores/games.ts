@@ -6,6 +6,8 @@ export interface GameEntry {
   isVanilla: boolean
   mcVersion: string
   loader: string
+  /** 内置图标标识：grass / command / anvil / Fabric / Quilt / NeoForge */
+  loaderIcon: string
 }
 
 // 已安装的游戏版本列表
