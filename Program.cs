@@ -65,7 +65,7 @@ partial class Program
             // 默认值与前端 stores/downloadSource.ts 的 DEFAULT_SOURCE 保持一致
             settings.IsEnableMirror = false;
             settings.IsEnableFragment = false;
-            settings.UserAgent = "DeciLauncher/1.0.0-beta.1";
+            settings.UserAgent = "DeciLauncher/1.0.0-beta.2";
         });
 
         // 从 Config/accounts.json 加载已保存的账户
@@ -179,7 +179,7 @@ partial class Program
 
         // DEBUG 模式下输出启动日志
 #if DEBUG
-        Logger.LogInformation("Deci Launcher v1.0.0-beta.1 started");
+        Logger.LogInformation("Deci Launcher v1.0.0-beta.2 started");
 #endif
 
         // 阻塞主线程，等待窗口关闭（进入消息循环）
