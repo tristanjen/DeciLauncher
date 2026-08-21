@@ -19,7 +19,7 @@ function dismiss() {
   <Modal v-model="show" centered>
     <span class="text-sm">{{ notification }}</span>
     <template #footer>
-      <DefaultButton class="px-4! bg-white/80!" @click="dismiss">我知道了</DefaultButton>
+      <DefaultButton class="!px-4 !bg-white/80" @click="dismiss">我知道了</DefaultButton>
     </template>
   </Modal>
 </template>

@@ -69,7 +69,7 @@ const buttonText = computed(() => {
   <div class="grow flex flex-col">
     <!-- 当前选中的游戏版本 -->
     <div class="grow flex items-center justify-center text-center">
-      <span class="text-4xl font-medium truncate w-xl">
+      <span class="text-4xl font-medium truncate w-144">
         {{ currentGame ? currentGame.id : t('home.noInstanceSelected') }}
       </span>
     </div>

@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 // Vue 响应式引用
 import { ref } from 'vue'
 // Toast 提示消息
@@ -49,7 +49,7 @@ function handleLogoClick() {
 </script>
 
 <template>
-  <!-- 标题栏容器：212.5x12 单元（实际尺寸由 Tailwind 倍数定义） -->
+  <!-- 标题栏容器：212.5x12 单元（实际尺寸由 UnoCSS spacing 倍数定义） -->
   <div class="border-b border-[#52C41A]/25 shadow-[0_0_4px_#52C41A3F] relative w-212.5 h-12 bg-white/50 rounded-t-lg inline-flex flex-row items-center justify-between shrink-0" @mousedown="onMouseDown">
     <!-- 应用 Logo / 标题文字（SVG 图形） -->
     <img class="ml-4" src="../../assets/images/title.svg" alt="Title" @click="handleLogoClick" @mousedown.stop>

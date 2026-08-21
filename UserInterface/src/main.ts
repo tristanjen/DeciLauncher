@@ -45,7 +45,9 @@ document.addEventListener('contextmenu', (e: MouseEvent) => {
 })
 
 // Vue 应用入口 — 初始化并挂载到 DOM
-// 导入全局样式（Tailwind CSS + 自定义样式）
+// 导入 UnoCSS 按需生成的样式（含 preflight，须先于自定义样式）
+import 'virtual:uno.css'
+// 导入全局自定义样式（body/滚动条等）
 import './assets/main.css'
 
 // 从 Vue 库导入应用创建函数

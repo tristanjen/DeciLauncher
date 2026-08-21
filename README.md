@@ -34,7 +34,7 @@ A cross-platform Minecraft Launcher built with C#/.NET 10 + Photino.NET + Vue 3.
 | Layer | Technology |
 |-------|-----------|
 | Backend | C# (.NET 10), Photino.NET, MinecraftLaunch |
-| Frontend | Vue 3 + TypeScript + Tailwind CSS v4 + Vite |
+| Frontend | Vue 3 + TypeScript + UnoCSS + Vite |
 | Desktop | Photino.NET (WebView2 on Windows, WebKit on macOS/Linux) |
 | Build | .NET SDK + pnpm |
 
@@ -85,7 +85,7 @@ dotnet publish DeciLauncher.csproj -c Release -r win-x64
 | [MinecraftLaunch](https://github.com/Lunova-Studio/MinecraftLaunch) | Minecraft launch core | MIT |
 | [Vue](https://github.com/vuejs/core) | Frontend framework | MIT |
 | [Vite](https://github.com/vitejs/vite) | Frontend build tool | MIT |
-| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | CSS framework | MIT |
+| [UnoCSS](https://github.com/unocss/unocss) | CSS engine | MIT |
 | [TypeScript](https://github.com/microsoft/TypeScript) | Typed JavaScript | Apache-2.0 |
 | [xUnit](https://github.com/xunit/xunit) | Test framework | Apache-2.0 |
 | [pnpm](https://github.com/pnpm/pnpm) | Package manager | MIT |

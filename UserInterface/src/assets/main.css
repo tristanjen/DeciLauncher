@@ -1,9 +1,6 @@
-/* 全局样式 — Tailwind CSS v4 入口 + body 基础设置 */
+/* 全局自定义样式 — body 基础设置 + 滚动条（UnoCSS 样式由 main.ts 导入 virtual:uno.css） */
 
-/* 导入 Tailwind CSS（v4 使用 CSS 原生 @import 语法） */
-@import "tailwindcss";
-
-/* body 全局基础样式（Tailwind preflight 已覆盖 margin/padding/font-family 等） */
+/* body 全局基础样式（UnoCSS wind4 preflight 已覆盖 margin/padding/font-family 等） */
 body {
   /* 透明背景：配合 Photino 的 SetTransparent(true) 实现毛玻璃/透明窗口效果 */
   background: transparent;

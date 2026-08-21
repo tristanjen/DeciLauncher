@@ -10,6 +10,9 @@ obj/
 node_modules/
 npm-debug.log*
 
+# pnpm 11 workspace-local store
+.pnpm-store/
+
 # Build output (frontend builds into Resources/wwwroot)
 Resources/wwwroot/
 !Resources/wwwroot/.gitkeep

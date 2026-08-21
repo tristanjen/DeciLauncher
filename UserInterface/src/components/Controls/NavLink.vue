@@ -8,7 +8,7 @@ withDefaults(defineProps<{
 })
 
 const linkClass = 'transition ease-out duration-150 hover:bg-[#B7EB8F] inline-flex items-center justify-center align-middle text-sm rounded-lg'
-const activeClass = 'bg-[#D9F7BE] text-[#389E0D]! font-medium'
+const activeClass = 'bg-[#D9F7BE] !text-[#389E0D] font-medium'
 </script>
 
 <template>

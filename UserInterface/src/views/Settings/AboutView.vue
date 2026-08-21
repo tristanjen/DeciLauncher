@@ -16,7 +16,7 @@ const version = ref('')
 // 开源项目致谢（项目名为专有名词，不参与翻译）
 const projects = [
   '.NET', 'ASP.NET Core', 'Photino.NET', 'MinecraftLaunch', 'Vue',
-  'Vite', 'Tailwind CSS', 'TypeScript', 'xUnit', 'pnpm'
+  'Vite', 'UnoCSS', 'TypeScript', 'xUnit', 'pnpm'
 ]
 
 // 注册 app-info 响应监听（返回卸载函数）
@@ -41,7 +41,7 @@ onUnmounted(() => {
       <div class="grow flex flex-col items-center justify-center gap-2">
         <img :src="logo" alt="Deci Launcher" class="w-32 h-32 rounded-4xl shadow-lg" />
         <span class="text-2xl font-bold">Deci Launcher</span>
-        <span v-if="version" class="text-sm/1 text-[#52c41a]">{{ t('about.version', { version }) }}</span>
+        <span v-if="version" class="text-sm leading-[0.25rem] text-[#52c41a]">{{ t('about.version', { version }) }}</span>
       </div>
 
       <!-- Copyright：贴卡片底部居中 -->

@@ -34,7 +34,7 @@
 | 层级 | 技术 |
 |------|------|
 | 后端 | C# (.NET 10)、Photino.NET、MinecraftLaunch |
-| 前端 | Vue 3 + TypeScript + Tailwind CSS v4 + Vite |
+| 前端 | Vue 3 + TypeScript + UnoCSS + Vite |
 | 桌面 | Photino.NET（Windows 上使用 WebView2，macOS/Linux 上使用 WebKit） |
 | 构建 | .NET SDK + pnpm |
 
@@ -84,7 +84,7 @@ dotnet publish DeciLauncher.csproj -c Release -r win-x64
 | [MinecraftLaunch](https://github.com/Lunova-Studio/MinecraftLaunch) | Minecraft 启动核心 | MIT |
 | [Vue](https://github.com/vuejs/core) | 前端框架 | MIT |
 | [Vite](https://github.com/vitejs/vite) | 前端构建工具 | MIT |
-| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | CSS 框架 | MIT |
+| [UnoCSS](https://github.com/unocss/unocss) | CSS 框架 | MIT |
 | [TypeScript](https://github.com/microsoft/TypeScript) | 类型化 JavaScript | Apache-2.0 |
 | [xUnit](https://github.com/xunit/xunit) | 测试框架 | Apache-2.0 |
 | [pnpm](https://github.com/pnpm/pnpm) | 包管理器 | MIT |
