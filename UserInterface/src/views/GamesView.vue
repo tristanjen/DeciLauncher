@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Vue 计算属性（原版 / 模组分组）
-import { computed, onMounted, onUnmounted } from 'vue'
-// 前端 ↔ C# 后端消息桥（发送扫描命令 + 监听文件夹选择结果）
-import { sendNative, onNativeMessage } from '../native'
+import { computed } from 'vue'
+// 前端 ↔ C# 后端消息桥（发送扫描/浏览命令）
+import { sendNative } from '../native'
 // 全局共享状态（游戏列表，App.vue 启动时已扫描）
 import { games, scanningGames, gamePath, selectedGame } from '../stores/store'
 // 启动状态（锁定切换）与提示
@@ -36,6 +36,9 @@ const loaderLogos: Record<string, string> = {
   command: commandIcon,
 }
 
+// 游戏启动或运行期间锁定版本切换（启动中的目标版本不可中途变更）
+const switchLocked = computed(() => launching.value || gameRunning.value)
+
 /**
  * 根据内置图标标识取图片；未知标识回退应用图标。
  * 方块图标为像素风（image-rendering: pixelated），加载器 logo 平滑缩放。
@@ -52,23 +55,6 @@ const vanillaGames = computed(() => games.value.filter(g => g.isVanilla))
 // 模组游戏（isVanilla = false）
 const moddedGames = computed(() => games.value.filter(g => !g.isVanilla))
 
-// 游戏启动或运行期间锁定版本切换（启动中的目标版本不可中途变更）
-const switchLocked = computed(() => launching.value || gameRunning.value)
-
-let unsub: (() => void) | undefined
-
-onMounted(() => {
-  unsub = onNativeMessage('game-path-selected', (payload) => {
-    const path = payload.path
-    if (path) {
-      gamePath.value = path
-      localStorage.setItem('game-path-pref', path)
-      scanGames()
-    }
-  })
-})
-
-onUnmounted(() => { unsub?.() })
 
 /**
  * 向 C# 后端发起游戏版本扫描。

@@ -30,6 +30,11 @@ partial class Program
     /// </summary>
     private static CancellationTokenSource LaunchCts = new();
     /// <summary>
+    /// 保护 LaunchCts 的交换与取消：两者必须互斥，否则「CancelLaunch 读旧引用取消」
+    /// 可能与「启动线程替换新 CTS」交错，导致用户点击取消但新启动继续执行。
+    /// </summary>
+    private static readonly object CtsLock = new();
+    /// <summary>
     /// 启动防重入标志：1 = 有启动流程在执行。
     /// Interlocked 检查-设置，覆盖「RunningProcess 检查」与「RunAsync 赋值」之间的 await 窗口
     /// </summary>
@@ -70,9 +75,9 @@ partial class Program
     /// </summary>
     private static void CancelLaunch(PhotinoWindow window)
     {
-        // 捕获当前 CTS 局部引用再取消，避免与下一次启动重建的 LaunchCts 产生竞态
-        var cts = Volatile.Read(ref LaunchCts);
-        cts.Cancel();
+        // 锁内取消：与启动线程的 CTS 重建互斥（见 CtsLock 注释）
+        lock (CtsLock)
+            LaunchCts.Cancel();
 
         if (RunningProcess != null)
         {
@@ -134,15 +139,24 @@ partial class Program
                 return;
             }
 
-            // 重建取消令牌（上次启动可能已取消；Volatile 保证与 CancelLaunch/close 处理器的可见性）
-            Volatile.Write(ref LaunchCts, new CancellationTokenSource());
-            var launchToken = Volatile.Read(ref LaunchCts).Token;
+            // 重建取消令牌（上次启动可能已取消）。
+            // 与 CancelLaunch/close 的取消操作在 CtsLock 下互斥：
+            // 「cancel-launch 恰好落在此处」时要么取消旧 CTS（尚未替换）、
+            // 要么进入锁内取消新 CTS，不再存在取消被静默丢弃的窗口。
+            // 有意不 Dispose 旧 CTS：迟到的后台任务可能仍持有其 token 并调用 Register。
+            CancellationToken launchToken;
+            lock (CtsLock)
+            {
+                LaunchCts = new CancellationTokenSource();
+                launchToken = LaunchCts.Token;
+            }
 
             // 本次启动的开始时间（崩溃分析据此筛选本次启动产生的 crash-report）
             var launchStartedAt = DateTime.Now;
 
             if (maxMemory < 512) maxMemory = 512;
-            if (maxMemory > 16384) maxMemory = 16384;
+            // 上限与前端 games.ts MAX_MEMORY 保持一致（8 GB）；修改任一侧需同步另一侧
+            if (maxMemory > 8192) maxMemory = 8192;
 
             // 1. 查找账户（锁内读取，避免与账户删除并发破坏列表/字典；优先使用缓存，避免每次重新 Authenticate 导致 UUID 不一致。
             // 消息发送移到锁外，避免持锁等待 UI 线程）

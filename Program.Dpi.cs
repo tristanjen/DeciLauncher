@@ -81,12 +81,12 @@ partial class Program
     {
         // 读取 GTK 桌面环境的缩放因子
         var gdkScale = Environment.GetEnvironmentVariable("GDK_SCALE");
-        if (float.TryParse(gdkScale, out var scale) && scale > 0)
+        if (float.TryParse(gdkScale, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var scale) && scale > 0)
             return scale;
 
         // 读取 Qt/KDE 桌面环境的缩放因子
         var qtScale = Environment.GetEnvironmentVariable("QT_SCALE_FACTOR");
-        if (float.TryParse(qtScale, out scale) && scale > 0)
+        if (float.TryParse(qtScale, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out scale) && scale > 0)
             return scale;
 
         // 无法检测时回退到 100%

@@ -4,6 +4,7 @@ export const enUS: Record<string, string> = {
   'common.cancel': 'Cancel',
   'common.refresh': 'Refresh',
   'common.refreshing': 'Refreshing...',
+  'common.ok': 'Got it',
   'common.underConstruction': 'Under construction...',
 
   // Title bar

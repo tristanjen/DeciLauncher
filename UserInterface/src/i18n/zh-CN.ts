@@ -4,6 +4,7 @@ export const zhCN: Record<string, string> = {
   'common.cancel': '取消',
   'common.refresh': '刷新',
   'common.refreshing': '刷新中...',
+  'common.ok': '我知道了',
   'common.underConstruction': '开发中...',
 
   // 标题栏

@@ -78,7 +78,11 @@ internal static class ArgumentTemplateEngine
         var primaryJar = game.ClientJarPath
             ?? (game is ModifiedMinecraftEntry { HasInheritance: true } mm
                 ? mm.InheritedMinecraft.ClientJarPath
-                : "");
+                : null);
+
+        // 空 primary jar：损坏安装下 JVM 只会收到空 -cp 段，报错晦涩；在此提前给出明确异常
+        if (string.IsNullOrEmpty(primaryJar))
+            throw new InvalidOperationException($"未找到 {game.Id} 的 client jar，无法解析 ${{primary_jar}} 占位符");
 
         var replacements = new Dictionary<string, string>
         {

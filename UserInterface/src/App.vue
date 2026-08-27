@@ -32,6 +32,19 @@ onMounted(async () => {
     hasScanned.value = true
   })
 
+  // 游戏来源目录选择结果：在应用层常驻监听，
+  // 即使用户选择目录时已切离游戏页（原生对话框为异步），结果也不会被静默丢弃
+  onNativeMessage('game-path-selected', (payload) => {
+    const p = payload.path
+    if (!p) return
+    gamePath.value = p
+    localStorage.setItem('game-path-pref', p)
+    // 与游戏页「刷新」行为一致：清空旧列表后触发重新扫描
+    scanningGames.value = true
+    games.value = []
+    sendNative('scan-games', { path: p })
+  })
+
   onNativeMessage('game-list', (payload) => {
     games.value = payload.games ?? []
     scanningGames.value = false

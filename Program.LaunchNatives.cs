@@ -30,8 +30,9 @@ partial class Program
 
             var platformPrefix = OperatingSystem.IsWindows() ? "natives-windows"
                 : OperatingSystem.IsMacOS() ? "natives-macos" : "natives-linux";
-            var ext = OperatingSystem.IsWindows() ? ".dll"
-                : OperatingSystem.IsMacOS() ? ".dylib" : ".so";
+            // macOS 额外接受 .jnilib：LWJGL 旧版本 native 使用该扩展名
+            var nativesExts = OperatingSystem.IsWindows() ? new[] { ".dll" }
+                : OperatingSystem.IsMacOS() ? new[] { ".dylib", ".jnilib" } : new[] { ".so" };
 
             // 架构后缀：优先解压与当前进程架构精确匹配的 classifier；
             // arm64/x86 机器上老版本没有对应变体时，回退解压无后缀/x64 变体（兼容/仿真运行）
@@ -105,7 +106,7 @@ partial class Program
                                 var classifier = prop.Value.GetString();
                                 if (string.IsNullOrEmpty(classifier) || !MatchesPlatform(classifier, allowX64Fallback))
                                     continue;
-                                if (ExtractFromClassifier(lib, classifier, minecraftPath, nativesDir, ext) &&
+                                if (ExtractFromClassifier(lib, classifier, minecraftPath, nativesDir, nativesExts) &&
                                     libBase.Length > 0)
                                     handledBases.Add(libBase);
                             }
@@ -119,7 +120,7 @@ partial class Program
                         {
                             var nameParts = mavenName.Split(':');
                             if (nameParts.Length >= 4 && MatchesPlatform(nameParts[3], allowX64Fallback) &&
-                                ExtractFromArtifact(lib, minecraftPath, nativesDir, ext) &&
+                                ExtractFromArtifact(lib, minecraftPath, nativesDir, nativesExts) &&
                                 libBase.Length > 0)
                                 handledBases.Add(libBase);
                         }
@@ -146,7 +147,7 @@ partial class Program
         }
 
         // 旧格式：从 downloads.classifiers[classifier].path 定位并解压
-        static bool ExtractFromClassifier(JsonElement lib, string classifier, string minecraftPath, string nativesDir, string ext)
+        static bool ExtractFromClassifier(JsonElement lib, string classifier, string minecraftPath, string nativesDir, string[] exts)
         {
             if (!lib.TryGetProperty("downloads", out var downloads) ||
                 !downloads.TryGetProperty("classifiers", out var classifiers) ||
@@ -154,30 +155,30 @@ partial class Program
                 !artifact.TryGetProperty("path", out var pathProp))
                 return false;
 
-            return ExtractZipToNatives(Path.Combine(minecraftPath, "libraries", pathProp.GetString()!), nativesDir, ext);
+            return ExtractZipToNatives(Path.Combine(minecraftPath, "libraries", pathProp.GetString()!), nativesDir, exts);
         }
 
         // 新格式（1.20.5+）：从 downloads.artifact.path 定位并解压
-        static bool ExtractFromArtifact(JsonElement lib, string minecraftPath, string nativesDir, string ext)
+        static bool ExtractFromArtifact(JsonElement lib, string minecraftPath, string nativesDir, string[] exts)
         {
             if (!lib.TryGetProperty("downloads", out var downloads) ||
                 !downloads.TryGetProperty("artifact", out var artifact) ||
                 !artifact.TryGetProperty("path", out var pathProp))
                 return false;
 
-            return ExtractZipToNatives(Path.Combine(minecraftPath, "libraries", pathProp.GetString()!), nativesDir, ext);
+            return ExtractZipToNatives(Path.Combine(minecraftPath, "libraries", pathProp.GetString()!), nativesDir, exts);
         }
 
         // 将 zip 中指定扩展名的文件解压到 natives 目录（幂等：已存在的文件跳过）。
         // 返回是否实际处理了该库文件（存在即 true，用于两阶段回退的产出计数）
-        static bool ExtractZipToNatives(string zipPath, string nativesDir, string ext)
+        static bool ExtractZipToNatives(string zipPath, string nativesDir, string[] exts)
         {
             if (!File.Exists(zipPath)) return false;
 
             using var zip = ZipFile.OpenRead(zipPath);
             foreach (var entry in zip.Entries)
             {
-                if (!string.Equals(Path.GetExtension(entry.FullName), ext, StringComparison.OrdinalIgnoreCase))
+                if (!exts.Contains(Path.GetExtension(entry.FullName), StringComparer.OrdinalIgnoreCase))
                     continue;
                 var target = Path.Combine(nativesDir, Path.GetFileName(entry.FullName));
                 if (!File.Exists(target))

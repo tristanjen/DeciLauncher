@@ -190,7 +190,9 @@ partial class Program
                         // 先关闭正在运行的游戏并取消进行中的启动，再销毁窗口，
                         // 避免游戏进程残留以及销毁后异步回调继续调用窗口 API
                         CloseGame(window);
-                        Volatile.Read(ref LaunchCts).Cancel();
+                        // 锁内取消，避免与启动线程的 CTS 重建交错（见 Program.Launch.cs CtsLock）
+                        lock (CtsLock)
+                            LaunchCts.Cancel();
                         window.Close();
                         return;
                     }
