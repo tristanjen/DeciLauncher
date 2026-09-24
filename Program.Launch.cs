@@ -433,13 +433,18 @@ partial class Program
                 }
             };
 
-            // 轮询等待游戏窗口出现（最多 30 秒），窗口出现后才发送 game-launched
+            // 轮询等待游戏窗口出现（Windows：MainWindowHandle 探测，最多 30 秒）。
+            // Process.MainWindowHandle 仅在 Windows 有实现，Linux/macOS 恒为 IntPtr.Zero，
+            // 无法探测游戏窗口——非 Windows 改为「进程存活满 5 秒未退出」即视为启动成功，
+            // 避免 UI 卡在「等待窗口」阶段直到 30 秒超时
+            var canDetectWindow = OperatingSystem.IsWindows();
+            var windowWaitTimeoutMs = canDetectWindow ? 30_000 : 5_000;
             _ = Task.Run(async () =>
             {
                 try
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
-                    while (sw.ElapsedMilliseconds < 30_000)
+                    while (sw.ElapsedMilliseconds < windowWaitTimeoutMs)
                     {
                         // 本次启动已被更新的启动取代（代次变化）或进程引用已被清空时终止轮询
                         if (!IsCurrent() || RunningProcess == null)
@@ -465,26 +470,31 @@ partial class Program
                             TryNotifyWindow(window, GameMessages.GameExited);
                             return;
                         }
-                        try
+                        // 窗口探测仅 Windows 可用；非 Windows 空转到存活判定超时
+                        if (canDetectWindow)
                         {
-                            if (processRef.Process?.MainWindowHandle != IntPtr.Zero)
+                            try
                             {
-                                if (!IsCurrent())
+                                if (processRef.Process?.MainWindowHandle != IntPtr.Zero)
                                 {
-                                    Log.Debug("[Launch] 轮询终止: 窗口出现前启动已被替代");
+                                    if (!IsCurrent())
+                                    {
+                                        Log.Debug("[Launch] 轮询终止: 窗口出现前启动已被替代");
+                                        return;
+                                    }
+                                    Log.Debug("[Launch] 游戏窗口已出现");
+                                    TryNotifyWindow(window, GameMessages.GameLaunched);
                                     return;
                                 }
-                                Log.Debug("[Launch] 游戏窗口已出现");
-                                TryNotifyWindow(window, GameMessages.GameLaunched);
-                                return;
                             }
+                            // MainWindowHandle 访问在窗口关闭竞态下可能抛 InvalidOperationException，
+                            // 轮询期间静默忽略（下一轮循环会经由 HasExited 分支处理退出）
+                            catch { }
                         }
-                        // MainWindowHandle 访问在窗口关闭竞态下可能抛 InvalidOperationException，
-                        // 轮询期间静默忽略（下一轮循环会经由 HasExited 分支处理退出）
-                        catch { }
                         await Task.Delay(500);
                     }
-                    // 超时视为已启动，但发送前需确认本次启动仍是最新且进程引用未被清空，
+                    // 超时视为已启动（Windows：窗口未出现的保守放行；非 Windows：进程存活满 5 秒），
+                    // 发送前需确认本次启动仍是最新且进程引用未被清空，
                     // 防止与退出事件竞态导致 game-launched 晚于 game-exited 到达前端（UI 永久卡在「运行中」）
                     if (!IsCurrent() || RunningProcess != processRef)
                     {
