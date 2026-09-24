@@ -64,7 +64,7 @@ partial class Program
         }
         catch (Exception ex)
         {
-            Log.Debug($"[Launch] 关闭游戏失败: {ex.Message}");
+            Log.Warn($"[Launch] 关闭游戏失败: {ex.Message}");
         }
         RunningProcess = null;
         TryNotifyWindow(window, GameMessages.GameExited);
@@ -153,6 +153,8 @@ partial class Program
 
             // 本次启动的开始时间（崩溃分析据此筛选本次启动产生的 crash-report）
             var launchStartedAt = DateTime.Now;
+            // 清空游戏输出环形缓冲：只保留本次启动的输出，崩溃分析提取的尾部不含上一次运行内容
+            GameLogBuffer.Clear();
 
             if (maxMemory < 512) maxMemory = 512;
             // 上限与前端 games.ts MAX_MEMORY 保持一致（8 GB）；修改任一侧需同步另一侧
@@ -265,7 +267,7 @@ partial class Program
             }
             catch (Exception rex)
             {
-                Log.Debug($"[Launch] RunAsync 异常: {rex}");
+                Log.Warn($"[Launch] RunAsync 异常: {rex}");
                 TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = $"{L("启动异常", "Launch error")}: {rex.Message}" }));
                 return;
             }
@@ -329,7 +331,7 @@ partial class Program
                 }
                 catch (Exception ex)
                 {
-                    Log.Debug($"[Launch] ArgumentsParser 失败: {ex.Message}");
+                    Log.Warn($"[Launch] ArgumentsParser 失败: {ex.Message}");
                     // Fallback：手动构造启动参数，绕过 MinecraftLaunch 的 ParseJsonNode bug
                     try
                     {
@@ -355,14 +357,21 @@ partial class Program
                         // MinecraftProcess.Process 是 init-only 属性，反射注入收敛于 MinecraftLaunchFallbacks
                         MinecraftLaunchFallbacks.AttachProcess(RunningProcess, proc);
 
-                        // 手动绑定控制台输出（MinecraftProcess 内部事件在构造函数提前 return 后未绑定）
+                        // 手动绑定控制台输出（MinecraftProcess 内部事件在构造函数提前 return 后未绑定；
+                        // 输出同时进环形缓冲，供崩溃分析提取尾部）
                         proc.OutputDataReceived += (_, e) => {
                             if (!string.IsNullOrEmpty(e.Data))
+                            {
+                                GameLogBuffer.Add(e.Data);
                                 Log.Debug($"[MC] {e.Data}");
+                            }
                         };
                         proc.ErrorDataReceived += (_, e) => {
                             if (!string.IsNullOrEmpty(e.Data))
+                            {
+                                GameLogBuffer.Add($"ERR: {e.Data}");
                                 Log.Debug($"[MC] ERR: {e.Data}");
+                            }
                         };
 
                         // 手动绑定退出事件（MinecraftProcess 内置回调在构造器提前 return 后未绑定）
@@ -390,7 +399,7 @@ partial class Program
                     }
                     catch (Exception fallbackEx)
                     {
-                        Log.Debug($"[Launch] 手动启动失败: {fallbackEx}");
+                        Log.Warn($"[Launch] 手动启动失败: {fallbackEx}");
                         TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = $"{L("启动失败", "Launch failed")}: {fallbackEx.Message}" }));
                         return;
                     }
@@ -399,9 +408,12 @@ partial class Program
 
             Log.Debug("[Launch] RunAsync 完成");
 
-            // 注册日志和退出事件
+            // 注册日志和退出事件（输出同时进环形缓冲，供崩溃分析提取尾部）
             RunningProcess.OutputLogReceived += (_, arg) =>
+            {
+                GameLogBuffer.Add(arg.Data.Log);
                 Log.Debug($"[MC] {arg.Data.Log}");
+            };
 
             var processRef = RunningProcess;
             RunningProcess.Exited += (_, _) =>
@@ -503,6 +515,7 @@ partial class Program
         }
         catch (Exception ex)
         {
+            Log.Warn($"[Launch] 启动流程异常: {ex.Message}");
             TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = ex.Message }));
         }
         finally
@@ -529,7 +542,7 @@ partial class Program
         }
         catch (Exception ex)
         {
-            Log.Debug($"[Launch] 取消清理失败: {ex.Message}");
+            Log.Warn($"[Launch] 取消清理失败: {ex.Message}");
         }
         if (generation == Volatile.Read(ref LaunchGeneration))
             TryNotifyWindow(window, GameMessages.GameExited);

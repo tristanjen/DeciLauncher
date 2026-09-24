@@ -279,7 +279,7 @@ partial class Program
                 }
                 catch (Exception ex)
                 {
-                    Log.Debug($"[Window] 消息解析失败: {ex.Message}");
+                    Log.Warn($"[Window] 消息解析失败: {ex.Message}");
                 }
             })
             // 加载前端页面（load WebView2 content）

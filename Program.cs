@@ -31,18 +31,6 @@ partial class Program
     internal static string FL(string zh, string en) =>
         System.Globalization.CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? zh : en;
 
-    // ===== 日志系统（仅 DEBUG 模式） =====
-
-#if DEBUG
-    // 日志工厂：创建控制台日志提供程序
-    private static readonly ILoggerFactory LoggerFactory =
-        Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddConsole());
-
-    // 日志记录器实例
-    private static readonly ILogger Logger =
-        LoggerFactory.CreateLogger(nameof(DeciLauncher));
-#endif
-
     // ===== 应用入口点 =====
 
     // STAThread：Windows COM 互操作要求（WebView2 底层依赖）
@@ -154,7 +142,7 @@ partial class Program
             }
             catch (Exception ex)
             {
-                Log.Debug($"[FATAL] Web 服务器启动失败: {ex}");
+                Log.Warn($"[Server] Web 服务器启动失败: {ex}");
                 ShowFatalError(FL(
                     $"无法在 127.0.0.1:{port} 启动本地服务器，请确认端口未被占用。\n\n{ex.Message}",
                     $"Failed to start the local server on 127.0.0.1:{port}. Make sure the port is not in use.\n\n{ex.Message}"));
@@ -169,6 +157,7 @@ partial class Program
                 ShowFatalError(FL("无法获取本地服务器的实际绑定地址。", "Failed to obtain the local server's bound address."));
                 return;
             }
+            Log.Info($"[Server] 静态资源服务器已绑定 {boundUrl}");
             appUrl = $"{boundUrl}/index.html?token={accessToken}";
         }
 
@@ -178,10 +167,36 @@ partial class Program
         // 构建并配置 Photino 窗口
         var window = BuildWindow(appUrl, scale);
 
-        // DEBUG 模式下输出启动日志
-#if DEBUG
-        Logger.LogInformation("Deci Launcher v1.0.0-beta.2 started");
-#endif
+        // 启动日志（文件 + DEBUG 控制台）
+        Log.Info($"Deci Launcher v{AppVersion} started");
+
+        // 前端就绪看门狗：页面 JS 挂载后必然主动发消息（App.vue onMounted 共 5 条），
+        // 若 15 秒内一条都没有，说明前端没渲染出来（dev server 异常 / 资源缺失 / WebView2 合成失败）——
+        // 此时窗口是全透明且无法操作的，必须明确提示并关闭，而不是静默留下不可见窗口
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(15_000);
+            if (FrontendReady) return;
+            Log.Warn("[Window] 15 秒内未收到前端任何消息：前端可能未渲染（检查 pnpm dev / 5173 占用 / WebView2 透明合成）");
+            // 窗口仍停在屏幕外：先移回屏幕内，让用户看到"窗口 + 明确原因"，而不是什么都没有
+            try { window.Invoke(() => window.Center()); }
+            catch (Exception ex) { Log.Warn($"[Window] 移回窗口失败: {ex.Message}"); }
+            ShowFatalError(FL(
+                "前端界面在 15 秒内没有响应，窗口无法显示内容。\n\n" +
+                "请检查：\n" +
+                "  1) Debug 模式下 UserInterface 是否正在运行 pnpm dev；\n" +
+                "  2) 5173 端口是否被其它程序占用；\n" +
+                "  3) 若怀疑 WebView2 透明合成异常，请用 --opaque 参数启动（不透明窗口）。\n\n" +
+                "点击确定后将关闭启动器。",
+                "The frontend did not respond within 15 seconds.\n\n" +
+                "Please check:\n" +
+                "  1) In Debug builds, is pnpm dev running in UserInterface?\n" +
+                "  2) Is port 5173 occupied by another program?\n" +
+                "  3) If WebView2 transparency is suspected, start with --opaque.\n\n" +
+                "The launcher will close when you click OK."));
+            try { window.Invoke(() => window.Close()); }
+            catch (Exception ex) { Log.Warn($"[Window] 关闭未渲染窗口失败: {ex.Message}"); }
+        });
 
         // 阻塞主线程，等待窗口关闭（进入消息循环）
         window.WaitForClose();

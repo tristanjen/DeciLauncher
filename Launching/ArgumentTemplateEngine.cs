@@ -135,7 +135,7 @@ internal static class ArgumentTemplateEngine
             if (root.TryGetProperty("arguments", out var argsObj) && argsObj.TryGetProperty("jvm", out var jvmArr))
                 AppendVersionArgs(args, jvmArr);
         }
-        catch (Exception ex) { Log.Debug($"[WARN] ReadJvmArgs: {ex.Message}"); }
+        catch (Exception ex) { Log.Warn($"[Args] ReadJvmArgs: {ex.Message}"); }
     }
 
     internal static void ReadGameArgs(string jsonContent, List<string> args)
@@ -150,7 +150,7 @@ internal static class ArgumentTemplateEngine
                 // 旧版单行参数：引号感知拆分（含引号的 token 不按空格拆）
                 args.AddRange(CommandLineBuilder.SplitArgsRespectingQuotes(mcArgs.GetString() ?? ""));
         }
-        catch (Exception ex) { Log.Debug($"[WARN] ReadGameArgs: {ex.Message}"); }
+        catch (Exception ex) { Log.Warn($"[Args] ReadGameArgs: {ex.Message}"); }
     }
 
     private static void AppendVersionArgs(List<string> args, JsonElement arr)
@@ -306,7 +306,7 @@ internal static class LibraryPathMapper
         }
         catch (Exception ex)
         {
-            Log.Debug($"[WARN] ReadLibraryPaths: {ex.Message}");
+            Log.Warn($"[Args] ReadLibraryPaths: {ex.Message}");
         }
     }
 

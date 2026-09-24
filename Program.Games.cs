@@ -87,7 +87,7 @@ partial class Program
                     }
                     catch (Exception ex)
                     {
-                        Log.Debug($"[WARN] 跳过游戏 {versionId}: {ex.Message}");
+                        Log.Warn($"[Games] 跳过游戏 {versionId}: {ex.Message}");
                     }
                 }
 
@@ -101,7 +101,7 @@ partial class Program
             }
             catch (Exception ex)
             {
-                Log.Debug($"[WARN] 扫描游戏失败: {ex.Message}");
+                Log.Warn($"[Games] 扫描游戏失败: {ex.Message}");
                 if (!IsStale())
                     TryNotifyWindow(window, JsonSerializer.Serialize(new
                     {

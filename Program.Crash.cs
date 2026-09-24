@@ -51,6 +51,12 @@ partial class Program
                 lines.Add(L(
                     $"可疑 Mod：{string.Join("、", result.SuspiciousMods)}",
                     $"Suspicious mods: {string.Join(", ", result.SuspiciousMods)}"));
+            // 附最近游戏输出尾部：部分崩溃不生成 crash-report（或报告信息不足），尾部日志往往含根因栈
+            var recentOutput = GameLogBuffer.Snapshot(15);
+            if (recentOutput.Length > 0)
+                lines.Add(L(
+                    $"游戏输出（最近 {recentOutput.Length} 行）：\n{string.Join("\n", recentOutput)}",
+                    $"Recent game output ({recentOutput.Length} lines):\n{string.Join("\n", recentOutput)}"));
             lines.Add(L(
                 $"崩溃报告：{Path.GetFileName(latest.FullName)}",
                 $"Crash report: {Path.GetFileName(latest.FullName)}"));
@@ -64,7 +70,7 @@ partial class Program
         }
         catch (Exception ex)
         {
-            Log.Debug($"[WARN] 崩溃分析失败: {ex.Message}");
+            Log.Warn($"[Crash] 崩溃分析失败: {ex.Message}");
             return false;
         }
     }

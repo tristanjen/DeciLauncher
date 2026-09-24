@@ -131,7 +131,7 @@ partial class Program
         catch (Exception ex)
         {
             // 解压失败不致命：游戏启动后会给出更明确的 LWJGL 错误
-            Log.Debug($"[WARN] ExtractNativesFallback 失败: {ex.Message}");
+            Log.Warn($"[Launch] ExtractNativesFallback 失败: {ex.Message}");
         }
 
         // 库的 base 标识：Maven 名前 3 段（去除 classifier 段），跨旧/新格式一致

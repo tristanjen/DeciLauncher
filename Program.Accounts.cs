@@ -15,7 +15,7 @@ namespace DeciLauncher;
 partial class Program
 {
     // 账户配置文件路径（%AppData%\.decilc\accounts.json）
-    private static readonly string AccountsDir = Path.Combine(
+    internal static readonly string AccountsDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".decilc");
     private static readonly string AccountsFilePath = Path.Combine(AccountsDir, "accounts.json");
     // 已创建的账户列表
@@ -53,7 +53,7 @@ partial class Program
         }
         catch (Exception ex)
         {
-            Log.Debug($"[WARN] 账户文件损坏: {ex.Message}");
+            Log.Warn($"[Accounts] 账户文件损坏: {ex.Message}");
             // 原子写入保留的上一次成功版本（.bak）回退。
             // 注意：解析中途失败时 Accounts 可能已部分填充，回退前清空避免重复条目
             var bak = AccountsFilePath + ".bak";
@@ -62,12 +62,12 @@ partial class Program
             {
                 Accounts.Clear();
                 ParseAccountsFrom(File.ReadAllText(bak));
-                Log.Debug("[WARN] 已从 .bak 备份恢复账户数据");
+                Log.Warn("[Accounts] 已从 .bak 备份恢复账户数据");
                 SaveAccounts(); // 原子写回，修复损坏的主文件
             }
             catch (Exception bakEx)
             {
-                Log.Debug($"[WARN] .bak 备份亦不可用: {bakEx.Message}");
+                Log.Warn($"[Accounts] .bak 备份亦不可用: {bakEx.Message}");
             }
         }
     }
@@ -120,12 +120,12 @@ partial class Program
             catch (Exception delEx)
             {
                 // 删除失败不致命：下次启动的重复迁移会被上面的 UUID 去重挡住
-                Log.Debug($"[WARN] 旧账户文件删除失败: {delEx.Message}");
+                Log.Warn($"[Accounts] 旧账户文件删除失败: {delEx.Message}");
             }
         }
         catch (Exception ex)
         {
-            Log.Debug($"[WARN] 旧账户迁移失败: {ex.Message}");
+            Log.Warn($"[Accounts] 旧账户迁移失败: {ex.Message}");
         }
     }
 
@@ -146,7 +146,7 @@ partial class Program
         }
         catch (Exception ex)
         {
-            Log.Debug($"[WARN] 保存账户失败: {ex.Message}");
+            Log.Warn($"[Accounts] 保存账户失败: {ex.Message}");
         }
     }
 
@@ -238,7 +238,7 @@ partial class Program
             }
             catch (Exception ex)
             {
-                Log.Debug($"[WARN] 账户 {entry.Username} 认证预热失败: {ex.Message}");
+                Log.Warn($"[Accounts] 账户 {entry.Username} 认证预热失败: {ex.Message}");
             }
         }
     }
