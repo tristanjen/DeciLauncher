@@ -65,7 +65,8 @@ partial class Program
             // 默认值与前端 stores/downloadSource.ts 的 DEFAULT_SOURCE 保持一致
             settings.IsEnableMirror = false;
             settings.IsEnableFragment = false;
-            settings.UserAgent = "DeciLauncher/1.0.0-beta.2";
+            // 版本号单一来源：csproj <Version> → 程序集 InformationalVersion（+commitHash 已截断）
+            settings.UserAgent = $"DeciLauncher/{AppVersion}";
         });
 
         // 从 Config/accounts.json 加载已保存的账户

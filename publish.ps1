@@ -1,12 +1,20 @@
 # DeciLauncher 发布脚本
 # 用法: .\publish.ps1 [-Version <version>] [-Configuration <Release|Debug>]
+# 版本号单一来源：不传 -Version 时从 DeciLauncher.csproj 的 <Version> 读取
 param(
-    [string]$version = "1.0.0-beta.2",
+    [string]$version = "",
     [string]$config = "Release"
 )
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
+
+# 解析版本号：显式 -Version 优先，否则取 csproj <Version>（与 CI 读取规则、前端 package.json 一致）
+if (-not $version) {
+    $match = Select-String -Path (Join-Path $root "DeciLauncher.csproj") -Pattern '<Version>([^<]+)</Version>' | Select-Object -First 1
+    if ($match) { $version = $match.Matches[0].Groups[1].Value }
+}
+if (-not $version) { throw "未能从 DeciLauncher.csproj 读取 <Version>，请用 -Version 显式指定" }
 $rids = @("win-x64", "win-arm64", "linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
 $releaseDir = Join-Path $root "Release"
 

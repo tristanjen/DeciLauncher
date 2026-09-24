@@ -1,7 +1,8 @@
-﻿<!--
+<!--
   Deci Launcher 项目配置
   目标框架：.NET 10.0
-  输出类型：WinExe（生产模式）/ Exe（Debug 模式）
+  输出类型：WinExe（各配置一致：避免 Windows 弹出控制台窗口；
+            启动期异常由 Program.Main 的全局兜底转为文件日志 + 原生对话框）
   支持平台：win-x64, win-arm64, linux-x64, linux-arm64, osx-x64, osx-arm64
 -->
 <Project Sdk="Microsoft.NET.Sdk">
@@ -40,8 +41,8 @@
         <!-- PublishTrimmed 会自动把 JsonSerializerIsReflectionEnabledByDefault 注入为 false，
              而本启动器的全部前端消息依赖反射序列化匿名对象，显式覆盖回 true -->
         <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
-        <!-- 关闭托管侧调试符号生成 -->
-        <DebugType>none</DebugType>
+        <!-- 关闭托管侧调试符号生成（仅 Release：Debug 构建保留 PDB，保证 IDE 断点调试） -->
+        <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
         <!-- 支持的运行时标识符列表（用于多平台发布） -->
         <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
         <!-- 应用版本号 -->
@@ -66,7 +67,8 @@
     <ItemGroup>
         <!-- 从程序集内嵌资源中提供静态文件（Photino 内嵌静态文件服务器依赖） -->
         <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.11" />
-        <!-- 控制台日志记录：.NET 10 框架自带 Microsoft.Extensions.Logging.Console，无需单独引用 -->
+        <!-- 日志：Log.cs 集中输出（Debug 条件编译 + Info/Warn 文件日志）；
+             using Microsoft.Extensions.Logging 仍保留（builder.Logging.ClearProviders 扩展方法所需） -->
         <!-- Minecraft 启动核心库（Mojang 账户认证 + 版本安装 + 启动） -->
         <PackageReference Include="MinecraftLaunch" Version="4.0.7" />
         <!-- Photino 桌面窗口框架（WebView2 / WebKit 跨平台封装） -->
