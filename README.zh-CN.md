@@ -16,6 +16,9 @@
 - **崩溃分析** — 游戏异常退出时自动解析最新崩溃报告，中文/英文解释原因（内存/显卡驱动/Mod 冲突/Java 版本等）
 - **单文件发布** — 自包含 `.exe`，无需外部 DLL
 - **简洁界面** — 绿色主题极简 UI，带过渡动画
+- **单实例保护** — 重复启动时提示"已经在运行"并退出，不会开出第二个窗口
+- **关启动器不关游戏** — 关闭启动器（点 X / Alt+F4 / 任务栏）只取消尚未启动完成的流程，已在运行的游戏会继续；只有"关闭游戏"按钮会结束游戏
+- **本地日志** — 滚动保留的 latest.log（配置目录不可写时回退到程序目录）；崩溃分析还会附带游戏输出尾部。日志只保存在本机，不做任何上传
 
 ## 系统要求
 
@@ -28,6 +31,37 @@
 - 不支持 32 位系统。
 - Linux 需系统提供 webkit2gtk-4.1（Ubuntu 22.04、Debian 12 起默认提供）；其他发行版以 glibc 与 webkit2gtk 版本为准自然兼容。
 - 上述下限由 .NET 10 运行时支持矩阵与 Photino 的 WebView 组件（WebView2 / WKWebView / WebKitGTK）决定。
+
+## 命令行参数
+
+| 参数 | 说明 |
+|------|------|
+| `--opaque` | 以不透明窗口启动（排查用）。窗口没有内容时请先试这个，详见下方"故障排查" |
+
+环境变量 `DECILAUNCHER_OPAQUE=1` 与 `--opaque` 等效。
+
+## 故障排查
+
+### 窗口空白或完全透明
+
+1. 先看日志（见下），它会记录启动停在哪一步。
+2. 用 `--opaque`（或 `DECILAUNCHER_OPAQUE=1`）启动：若此时能显示界面，说明问题出在透明窗口的渲染路径。
+3. 若仍然空白，退出启动器并删除 WebView2 数据目录后重试：
+   - Windows：`%LOCALAPPDATA%\DeciLauncher\EBWebView`
+
+### 提示"Deci Launcher 已经在运行"
+
+同一时间只允许运行一个实例。关闭另一个实例后重试。注意：关闭启动器并不会结束已经在运行的游戏。
+
+### 日志位置
+
+| 平台 | 路径 |
+|------|------|
+| Windows | `%AppData%\.decilc\logs\latest.log` |
+| Linux / macOS | `~/.config/.decilc/logs/latest.log` |
+
+若该目录无法创建（受限环境），会回退到可执行文件同级的 `logs/latest.log`。
+滚动保留 3 份（latest.log / latest.1.log / latest.2.log），日志不会离开你的机器。
 
 ## 技术栈
 
@@ -66,12 +100,22 @@ cd UserInterface && pnpm build && cd ..
 # 构建后端（Debug）
 dotnet build
 
-# 运行测试（xUnit v3，DeciLauncher.Tests）
+# 运行后端测试（xUnit v3，DeciLauncher.Tests）
 dotnet test
+
+# 运行前端测试（vitest）
+cd UserInterface && pnpm test && cd ..
+
+# 版本一致性校验（package.json 必须与 DeciLauncher.csproj 的 <Version> 一致）
+node UserInterface/scripts/check-version.mjs
 
 # 发布（Release，单文件，自包含）
 # 注意：必须显式指定 csproj —— 不带参数的 dotnet publish 会解析 .slnx 并尝试发布测试项目（NETSDK1151）
 dotnet publish DeciLauncher.csproj -c Release -r win-x64
+
+# 一键发布：前端 + 全部 RID + 打包 zip（需在目标平台构建的 RID 会提示跳过）
+# 版本号默认取 csproj 的 <Version>
+./publish.ps1
 ```
 
 ## 使用的开源项目

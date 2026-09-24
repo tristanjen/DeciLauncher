@@ -16,6 +16,9 @@ A cross-platform Minecraft Launcher built with C#/.NET 10 + Photino.NET + Vue 3.
 - **Crash analysis** — Automatically parses the latest crash report on abnormal exit and explains the cause (memory / graphics driver / mod conflicts / Java version / …) in Chinese or English
 - **Single-file publish** — Self-contained `.exe` with no external DLLs
 - **Clean UI** — Green-themed minimal interface with animated transitions
+- **Single instance** — Launching a second time reports "already running" and exits instead of opening another window
+- **Games survive launcher exit** — Closing the launcher (X / Alt+F4 / taskbar) only cancels an in-progress launch; a running game keeps going. Only the "Close game" button stops it
+- **Local logs** — Rolling latest.log (with a fallback location when the config folder is not writable); crash analysis also appends the tail of the game output. Nothing is uploaded anywhere
 
 ## System Requirements
 
@@ -28,6 +31,37 @@ A cross-platform Minecraft Launcher built with C#/.NET 10 + Photino.NET + Vue 3.
 - 32-bit systems are not supported.
 - On Linux, webkit2gtk-4.1 must be available (default since Ubuntu 22.04 / Debian 12); other distros work as long as glibc and webkit2gtk meet these versions.
 - These minimums follow the .NET 10 runtime support matrix and Photino's WebView components (WebView2 / WKWebView / WebKitGTK).
+
+## Command-line Options
+
+| Option | Description |
+|--------|-------------|
+| `--opaque` | Start with an opaque (non-transparent) window. Use this when the window shows no content — see Troubleshooting |
+
+The environment variable `DECILAUNCHER_OPAQUE=1` has the same effect as `--opaque`.
+
+## Troubleshooting
+
+### The window is empty or fully transparent
+
+1. Check the log file first (see below) — it records which startup stage failed.
+2. Start with `--opaque` (or `DECILAUNCHER_OPAQUE=1`). If the UI then appears, the transparent-window rendering path is the problem.
+3. If it is still blank, quit the launcher, delete the WebView2 data folder, and start again:
+   - Windows: `%LOCALAPPDATA%\DeciLauncher\EBWebView`
+
+### "Deci Launcher is already running"
+
+Only one instance may run at a time. Close the other instance and start again. Note that closing the launcher does not stop a game that is already running.
+
+### Log files
+
+| Platform | Path |
+|----------|------|
+| Windows | `%AppData%\.decilc\logs\latest.log` |
+| Linux / macOS | `~/.config/.decilc/logs/latest.log` |
+
+If that folder cannot be created (restricted environment), the launcher falls back to `logs/latest.log` next to the executable.
+Three generations are kept (`latest.log`, `latest.1.log`, `latest.2.log`) and the logs never leave your machine.
 
 ## Tech Stack
 
@@ -66,13 +100,23 @@ cd UserInterface && pnpm build && cd ..
 # Build backend (Debug)
 dotnet build
 
-# Run tests (xUnit v3, DeciLauncher.Tests)
+# Run backend tests (xUnit v3, DeciLauncher.Tests)
 dotnet test
+
+# Run frontend tests (vitest)
+cd UserInterface && pnpm test && cd ..
+
+# Version consistency check (package.json must match <Version> in DeciLauncher.csproj)
+node UserInterface/scripts/check-version.mjs
 
 # Publish (Release, single-file, self-contained)
 # Note: pass the csproj explicitly — a bare `dotnet publish` resolves the .slnx
 # and would try to publish the test project (NETSDK1151)
 dotnet publish DeciLauncher.csproj -c Release -r win-x64
+
+# One-shot release build: frontend + every RID + zips (RIDs that need another
+# platform are skipped with a notice). Version defaults to <Version> in the csproj.
+./publish.ps1
 ```
 
 ## Used Open Source Projects
