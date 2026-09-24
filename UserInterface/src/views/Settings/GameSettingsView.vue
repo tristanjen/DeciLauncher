@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Vue 计算属性（下拉框选项动态构建）
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 // 前端 ↔ C# 后端消息桥（发送扫描命令）
 import { sendNative } from '../../native'
 // 全局共享状态（Java 列表、选中项、扫描标记、内存上限、下载源偏好）
@@ -39,11 +39,6 @@ const dropdownOptions = computed(() => {
       value: j.path
     }))
   ]
-})
-
-// 内存变化时持久化到 localStorage
-watch(maxMemory, (val) => {
-  localStorage.setItem('max-memory', String(val))
 })
 
 /**

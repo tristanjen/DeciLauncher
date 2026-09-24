@@ -1,6 +1,8 @@
 // 国际化语言状态 — localStorage 持久化 + 系统语言检测 + 轻量翻译函数
 // 与 selected-game / selected-account / max-memory 等采用相同的 localStorage 模式
 import { ref, watch } from 'vue'
+// localStorage 安全读写（WebView2 存储不可用时降级内存态）
+import { safeGet, safeSet } from './storage'
 import { zhCN } from '../i18n/zh-CN'
 import { enUS } from '../i18n/en-US'
 
@@ -24,12 +26,9 @@ function detectSystemLocale(): Locale {
 }
 
 function resolveInitialLocale(): Locale {
-  try {
-    const stored = localStorage.getItem('language')
-    if (stored === 'zh-CN' || stored === 'en-US') return stored
-  } catch {
-    // WebView2 存储被禁用/异常时回退系统语言检测，避免 store 模块加载失败导致白屏
-  }
+  // safeGet 内部已 try/catch：存储被禁用/异常时返回 null，回退系统语言检测
+  const stored = safeGet('language')
+  if (stored === 'zh-CN' || stored === 'en-US') return stored
   return detectSystemLocale()
 }
 
@@ -40,9 +39,7 @@ export const locale = ref<Locale>(resolveInitialLocale())
 document.documentElement.lang = locale.value
 
 watch(locale, (v) => {
-  try {
-    localStorage.setItem('language', v)
-  } catch { /* 存储不可用时静默：仅本次会话生效 */ }
+  safeSet('language', v)
   document.documentElement.lang = v
 })
 

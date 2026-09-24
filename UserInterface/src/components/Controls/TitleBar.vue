@@ -5,6 +5,8 @@ import { ref } from 'vue'
 import { toast } from '../../stores/store'
 // 国际化翻译
 import { t } from '../../stores/locale'
+// localStorage 安全清空（WebView2 存储不可用时静默，避免调试手势抛异常）
+import { safeClear } from '../../stores/storage'
 // 导入窗口拖拽 composable（封装拖拽逻辑 + Photino 通信）
 import { useWindowDrag } from '../../composables/useWindowDrag'
 // 自定义控件：导航链接 + 图标按钮
@@ -37,7 +39,7 @@ let logoClickTimer: ReturnType<typeof setTimeout> | undefined
 function handleLogoClick() {
   logoClickCount.value++
   if (logoClickCount.value >= 5) {
-    localStorage.clear()
+    safeClear()
     toast.value = t('titlebar.localStorageReset')
     logoClickCount.value = 0
     if (logoClickTimer) { clearTimeout(logoClickTimer); logoClickTimer = undefined }

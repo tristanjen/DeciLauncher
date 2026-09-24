@@ -1,5 +1,7 @@
 // 账户列表相关状态
 import { ref, watch } from 'vue'
+// localStorage 安全读写（WebView2 存储不可用时降级内存态）
+import { safeGet, safeSet } from './storage'
 
 export interface AccountEntry {
   username: string
@@ -15,6 +17,6 @@ export const accounts = ref<AccountEntry[]>([])
 export const accountBusy = ref(false)
 
 // 当前选中的账户 UUID（localStorage 持久化）
-export const selectedAccount = ref(localStorage.getItem('selected-account') || '')
+export const selectedAccount = ref(safeGet('selected-account') || '')
 
-watch(selectedAccount, (v) => localStorage.setItem('selected-account', v))
+watch(selectedAccount, (v) => safeSet('selected-account', v))

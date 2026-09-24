@@ -37,8 +37,7 @@ onMounted(async () => {
   onNativeMessage('game-path-selected', (payload) => {
     const p = payload.path
     if (!p) return
-    gamePath.value = p
-    localStorage.setItem('game-path-pref', p)
+    gamePath.value = p // 持久化由 stores/games.ts 的 watch 负责（存储不可用时安全降级）
     // 与游戏页「刷新」行为一致：清空旧列表后触发重新扫描
     scanningGames.value = true
     games.value = []
