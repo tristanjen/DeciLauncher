@@ -66,7 +66,7 @@
 
     <ItemGroup>
         <!-- 从程序集内嵌资源中提供静态文件（Photino 内嵌静态文件服务器依赖） -->
-        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.12" />
         <!-- 日志：Log.cs 集中输出（Debug 条件编译 + Info/Warn 文件日志）；
              using Microsoft.Extensions.Logging 仍保留（builder.Logging.ClearProviders 扩展方法所需） -->
         <!-- Minecraft 启动核心库（Mojang 账户认证 + 版本安装 + 启动） -->
