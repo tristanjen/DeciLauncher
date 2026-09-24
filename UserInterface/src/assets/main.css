@@ -9,6 +9,12 @@ body {
   color: #333333;
 }
 
+/* 不透明回退模式（后端 --opaque / DECILAUNCHER_OPAQUE=1）：
+   窗口本身不透明，外层铺不透明底色（取卡片渐变起点色），避免方角窗口露出透明区域 */
+html[data-opaque='1'] body {
+  background: #f4ffb8;
+}
+
 /* 自定义滚动条样式（WebKit/Chromium 兼容，匹配绿色主题，始终显示） */
 ::-webkit-scrollbar {
   width: 8px;

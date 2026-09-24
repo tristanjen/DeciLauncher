@@ -98,7 +98,9 @@ onMounted(async () => {
   })
 
   scanning.value = true
-  await new Promise(r => requestAnimationFrame(r))
+  // 等两帧再发消息：后端收到首条消息才把窗口从屏幕外移回中央，
+  // 早于首帧显示会露出 WebView2 首帧之前的不透明黑底（实测约 1.5 秒）
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
   // 先把当前语言同步给后端，再发起扫描（保证后端错误消息语言一致）
   sendNative('set-language', { language: locale.value })
   // 同步下载源偏好（镜像/官方开关）

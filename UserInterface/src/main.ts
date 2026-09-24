@@ -50,6 +50,12 @@ import 'virtual:uno.css'
 // 导入全局自定义样式（body/滚动条等）
 import './assets/main.css'
 
+// 不透明回退模式：后端以 --opaque 启动时会在 URL 上追加 opaque=1，
+// 页面需给外层铺不透明底色，否则方角窗口会露出一圈透明区域
+if (new URLSearchParams(location.search).has('opaque')) {
+  document.documentElement.dataset.opaque = '1'
+}
+
 // 从 Vue 库导入应用创建函数
 import { createApp } from 'vue'
 

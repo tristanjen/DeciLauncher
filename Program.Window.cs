@@ -16,9 +16,15 @@ partial class Program
     private static double DragX = 0, DragY = 0;
 
     /// <summary>
+    /// 前端就绪标记：收到页面发来的任意一条消息即置位（App.vue 挂载后会主动发多条）。
+    /// 启动看门狗据此判断前端是否真的渲染出来了（见 Program.cs）——避免窗口全透明却毫无提示
+    /// </summary>
+    internal static volatile bool FrontendReady;
+
+    /// <summary>
     /// 构建并配置 Photino 窗口（chromeless、无边框、DPI 自适应）
     /// </summary>
-    private static PhotinoWindow BuildWindow(string appUrl, float scale)
+    private static PhotinoWindow BuildWindow(string appUrl, float scale, bool opaque)
     {
         var (width, height) = GetScaledSize(scale);
 
@@ -35,16 +41,17 @@ partial class Program
             .SetMaxWidth(width)
             // 限制窗口最大高度
             .SetMaxHeight(height)
-            // 窗口居中显示
-            .Center()
+            // 初始位置放在屏幕外：WebView2 首帧之前是一块不透明黑底，先显示会看到黑屏闪现；
+            // 前端首帧就绪后再由 Center() 移回屏幕中央（见消息处理器与 RegisterWindowCreatedHandler）
+            .SetLocation(new Point(OffScreenX, OffScreenY))
             // 禁止用户手动调整窗口大小
             .SetResizable(false)
             // 禁止窗口最大化
             .SetMaximized(false)
             // 启用无边框模式（chromeless：隐藏 OS 原生标题栏）
             .SetChromeless(true)
-            // 启用窗口透明背景
-            .SetTransparent(true)
+            // 透明背景（opaque 回退模式下关闭：WebView2 透明合成异常时保证窗口可见）
+            .SetTransparent(!opaque)
             // ===== 禁用不需要的 WebView2 功能以降低内存占用 =====
             // 禁用右键上下文菜单
             .SetContextMenuEnabled(false)
@@ -62,25 +69,16 @@ partial class Program
             .SetFileSystemAccessEnabled(false)
             // 禁用全屏模式
             .SetFullScreen(false)
-            // 锁定 WebView2 devicePixelRatio 为初始值，阻止跨显示器自动缩放；
-            // 禁用 GPU 加速：本启动器为静态 UI，软件渲染即可，消除独立 GPU 进程的内存占用；
-            // 禁用 Chromium 后台组件（网络服务/组件更新/默认应用），减少常驻 utility 进程。
-            // 注意：不使用 --metrics-recording-only（其语义是本地记录指标，会把含 ?token=
-            // 的导航 URL 写入本地 EBWebView 数据目录）
-            .SetBrowserControlInitParameters(string.Join(' ', new[]
-            {
-                $"--force-device-scale-factor={scale.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
-                "--disable-gpu",
-                "--disable-background-networking",
-                "--disable-component-update",
-                "--disable-default-apps",
-                // 限制 renderer 的 V8 堆:3 个静态页面 256 MB 绰绰有余,压住最大那个子进程的工作集
-                "--js-flags=--max-old-space-size=256"
-            }))
+            // WebView2 参数构建见 Launching/WebViewArgumentsBuilder（纯函数，含单测）
+            .SetBrowserControlInitParameters(WebViewArgumentsBuilder.Build(scale))
             // ===== 注册窗口事件处理器 =====
             // 窗口创建完成后设置就绪标记
             .RegisterWindowCreatedHandler((sender, args) =>
             {
+                // 兜底：链式 SetLocation 若未被底层采纳，这里再确保窗口在创建时就位于屏幕外，
+                // 从而遮住 WebView2 首帧之前的不透明黑底
+                ((PhotinoWindow)sender!).MoveTo(OffScreenX, OffScreenY, true);
+
                 // Windows：补全系统菜单和最小化样式，启用任务栏点击最小化/恢复
                 if (OperatingSystem.IsWindows())
                 {
@@ -95,6 +93,15 @@ partial class Program
             .RegisterWebMessageReceivedHandler((object? sender, string message) =>
             {
                 var window = (PhotinoWindow)sender!;
+                // 任何一条入站消息都证明页面 JS 已挂载并渲染（启动看门狗据此判定前端可见）
+                if (!FrontendReady)
+                {
+                    FrontendReady = true;
+                    // 首帧已上屏（前端在双 rAF 之后才发消息），此时把窗口从屏幕外移回屏幕中央，
+                    // 用户看到的第一眼就是渲染完成的 UI，不会看到 WebView2 首帧前的黑底
+                    window.Invoke(() => window.Center());
+                    Log.Info("[Window] 前端已就绪，窗口已显示");
+                }
 
                 try
                 {
@@ -181,12 +188,15 @@ partial class Program
                     // ---- 关闭窗口 ----
                     if (type == "close")
                     {
-                        // 先关闭正在运行的游戏并取消进行中的启动，再销毁窗口，
-                        // 避免游戏进程残留以及销毁后异步回调继续调用窗口 API
-                        CloseGame(window);
+                        // 仅取消尚未创建进程的启动流程；已在运行的游戏有意保留：
+                        // 关闭启动器不应中断玩家正在进行的游戏（HMCL/PCL/官方启动器同此约定）。
+                        // 窗口销毁后启动流程的迟到回调由 TryNotifyWindow 兜底捕获，不会崩溃。
                         // 锁内取消，避免与启动线程的 CTS 重建交错（见 Program.Launch.cs CtsLock）
-                        lock (CtsLock)
-                            LaunchCts.Cancel();
+                        if (RunningProcess == null)
+                        {
+                            lock (CtsLock)
+                                LaunchCts.Cancel();
+                        }
                         window.Close();
                         return;
                     }

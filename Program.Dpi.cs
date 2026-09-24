@@ -10,6 +10,13 @@ partial class Program
     // 标准 DPI 基准值（96 DPI = 100% 缩放）
     private const float StandardDpi = 96f;
 
+    // ===== 屏幕外起始位置（消除首帧黑屏闪现）=====
+    // 窗口先在屏幕外创建，等前端首帧真正上屏后再移回屏幕中央显示：
+    // WebView2 在合成出首个带 alpha 的帧之前，其表面是不透明黑底（实测约 1.5 秒），
+    // 窗口若立即可见就会看到黑屏闪现。该坐标不属于任何显示器，故不会出现在屏幕上
+    private const int OffScreenX = -32000;
+    private const int OffScreenY = -32000;
+
     // ===== 窗口尺寸计算 =====
 
     /// <summary>

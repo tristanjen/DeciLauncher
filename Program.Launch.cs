@@ -46,7 +46,8 @@ partial class Program
     private static int LaunchGeneration;
 
     /// <summary>
-    /// 关闭正在运行的游戏（同时供 CancelLaunch 复用）。
+    /// 关闭正在运行的游戏（供前端「关闭游戏」按钮与 CancelLaunch 复用）。
+    /// 注意：关闭启动器窗口不调用本方法——游戏进程有意保留，避免中断玩家正在进行的游戏。
     /// 即使后端已无进程引用也回发 game-exited：前端状态可能因消息乱序
     /// （game-launched 晚于 game-exited 到达）而失配，需要一条复位消息恢复
     /// </summary>
