@@ -312,17 +312,21 @@ partial class Program
                     // 确保 native 库已解压（RunAsync 内可能因异常提前返回未执行解压；幂等）
                     ExtractNativesFallback(game, minecraftPath);
 
+                    var startInfo = new System.Diagnostics.ProcessStartInfo(java.JavaPath)
+                    {
+                        WorkingDirectory = Path.Combine(minecraftPath, "versions", gameId),
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    };
+                    // 逐参数写入 ArgumentList：.NET 统一按 MSVCRT 规则加引号，
+                    // 含空格路径（classpath/natives 等）不会被拆成多个参数；
+                    // Unix 上直接构造 argv，消除“手工引号 → 进程启动时再解析”的往返
+                    foreach (var a in arguments)
+                        startInfo.ArgumentList.Add(a);
                     var proc = new System.Diagnostics.Process
                     {
-                        StartInfo = new System.Diagnostics.ProcessStartInfo(java.JavaPath)
-                        {
-                            // 逐参数加引号，避免含空格路径（classpath/natives 等）被拆成多个参数
-                            Arguments = CommandLineBuilder.JoinArguments(arguments),
-                            WorkingDirectory = Path.Combine(minecraftPath, "versions", gameId),
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true
-                        },
+                        StartInfo = startInfo,
                         EnableRaisingEvents = true
                     };
                     // MinecraftProcess.Process 是 init-only 属性，反射注入收敛于 MinecraftLaunchFallbacks
@@ -342,17 +346,21 @@ partial class Program
                         // 确保 native 库已解压到 versions/<id>/natives（fallback 的 natives_directory 指向该处）
                         ExtractNativesFallback(game, minecraftPath);
 
+                        var fallbackStartInfo = new System.Diagnostics.ProcessStartInfo(java.JavaPath)
+                        {
+                            WorkingDirectory = Path.Combine(minecraftPath, "versions", gameId),
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true
+                        };
+                        // 逐参数写入 ArgumentList：.NET 统一按 MSVCRT 规则加引号，
+                        // 含空格路径（classpath/natives 等）不会被拆成多个参数；
+                        // Unix 上直接构造 argv，消除“手工引号 → 进程启动时再解析”的往返
+                        foreach (var a in fallbackArgs)
+                            fallbackStartInfo.ArgumentList.Add(a);
                         var proc = new System.Diagnostics.Process
                         {
-                            StartInfo = new System.Diagnostics.ProcessStartInfo(java.JavaPath)
-                            {
-                                // 逐参数加引号，避免含空格路径（classpath/natives 等）被拆成多个参数
-                                Arguments = CommandLineBuilder.JoinArguments(fallbackArgs),
-                                WorkingDirectory = Path.Combine(minecraftPath, "versions", gameId),
-                                UseShellExecute = false,
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true
-                            },
+                            StartInfo = fallbackStartInfo,
                             EnableRaisingEvents = true
                         };
                         // MinecraftProcess.Process 是 init-only 属性，反射注入收敛于 MinecraftLaunchFallbacks
