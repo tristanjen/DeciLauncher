@@ -48,9 +48,11 @@ if (chromeObj?.webview) {
   ;(chromeObj.webview as EventTarget).addEventListener('message', (e: Event) => {
     dispatch((e as MessageEvent).data as string)
   })
-} else if (externalObj) {
-  // 运行时防御：window.external 可能不存在（旧版 WebView2 运行时）
-  externalObj.receiveMessage = dispatch
+} else if (externalObj && typeof externalObj.receiveMessage === 'function') {
+  // Photino macOS/Linux（WKWebView / WebKitGTK）：receiveMessage 是注入的「注册回调」函数，
+  // 必须调用它把 dispatch 加入回调列表；直接赋值会覆盖注册函数，
+  // 导致原生层 __dispatchMessageCallback 遍历空列表，所有后端消息被静默丢弃。
+  ;(externalObj.receiveMessage as (callback: (message: string) => void) => void)(dispatch)
 } else {
   console.warn('[native] 无法注册消息接收通道：window.external 与 chrome.webview 均不存在')
 }

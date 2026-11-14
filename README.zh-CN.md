@@ -40,6 +40,8 @@
 
 环境变量 `DECILAUNCHER_OPAQUE=1` 与 `--opaque` 等效。
 
+macOS 上 Photino 未原生实现透明窗口，启动器会在窗口创建后通过 AppKit 补齐透明属性；若显示异常仍可用 `--opaque` 回退为不透明窗口。
+
 ## 故障排查
 
 ### 窗口空白或完全透明
@@ -58,7 +60,8 @@
 | 平台 | 路径 |
 |------|------|
 | Windows | `%AppData%\.decilc\logs\latest.log` |
-| Linux / macOS | `~/.config/.decilc/logs/latest.log` |
+| Linux | `~/.config/.decilc/logs/latest.log` |
+| macOS | `~/Library/Application Support/.decilc/logs/latest.log` |
 
 若该目录无法创建（受限环境），会回退到可执行文件同级的 `logs/latest.log`。
 滚动保留 3 份（latest.log / latest.1.log / latest.2.log），日志不会离开你的机器。

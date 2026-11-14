@@ -117,10 +117,14 @@ onMounted(async () => {
       class="flex flex-col w-212.5 h-125 bg-linear-to-br from-[#F4FFB8] to-[#D9F7BE] rounded-lg shadow-[0_0_10px_#0000003F] overflow-hidden relative"
       id="main-card">
       <TitleBar />
-      <Transition name="fade" mode="out-in">
-        <RouterView :key="$route.matched[0]?.name"
-          class="grow p-3 rounded-b-lg overflow-y-auto scroll-smooth" />
-      </Transition>
+      <!-- vue-router 5：<router-view> 不能直接放在 <transition> 内，
+           必须通过 v-slot 取出组件再由 <component> 渲染（否则路由切换动画失效并告警） -->
+      <RouterView v-slot="{ Component }">
+        <Transition name="fade" mode="out-in">
+          <component :is="Component" :key="$route.matched[0]?.name"
+            class="grow p-3 rounded-b-lg overflow-y-auto scroll-smooth" />
+        </Transition>
+      </RouterView>
       <Notification />
       <Toast />
       <!-- <NavigationBar /> -->

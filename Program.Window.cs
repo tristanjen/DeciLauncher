@@ -41,9 +41,11 @@ partial class Program
             .SetMaxWidth(width)
             // 限制窗口最大高度
             .SetMaxHeight(height)
-            // 初始位置放在屏幕外：WebView2 首帧之前是一块不透明黑底，先显示会看到黑屏闪现；
-            // 前端首帧就绪后再由 Center() 移回屏幕中央（见消息处理器与 RegisterWindowCreatedHandler）
-            .SetLocation(new Point(OffScreenX, OffScreenY))
+            // 初始位置：仅 Windows 放到屏幕外（WebView2 首帧之前是一块不透明黑底，先显示会看到黑屏闪现），
+            // 前端首帧就绪后再由 Center() 移回屏幕中央（见消息处理器与 RegisterWindowCreatedHandler）。
+            // macOS/Linux 的 WebKit 没有该黑底问题，且窗口不可见时会暂停 requestAnimationFrame——
+            // 前端「等两帧再发首条消息」会永远等不到，看门狗误判前端未渲染（macOS 实测）。
+            .SetLocation(OperatingSystem.IsWindows() ? new Point(OffScreenX, OffScreenY) : Point.Empty)
             // 禁止用户手动调整窗口大小
             .SetResizable(false)
             // 禁止窗口最大化
@@ -69,15 +71,14 @@ partial class Program
             .SetFileSystemAccessEnabled(false)
             // 禁用全屏模式
             .SetFullScreen(false)
-            // WebView2 参数构建见 Launching/WebViewArgumentsBuilder（纯函数，含单测）
-            .SetBrowserControlInitParameters(WebViewArgumentsBuilder.Build(scale))
             // ===== 注册窗口事件处理器 =====
             // 窗口创建完成后设置就绪标记
             .RegisterWindowCreatedHandler((sender, args) =>
             {
                 // 兜底：链式 SetLocation 若未被底层采纳，这里再确保窗口在创建时就位于屏幕外，
-                // 从而遮住 WebView2 首帧之前的不透明黑底
-                ((PhotinoWindow)sender!).MoveTo(OffScreenX, OffScreenY, true);
+                // 从而遮住 WebView2 首帧之前的不透明黑底（仅 Windows；WebKit 平台需保持可见以驱动 rAF）
+                if (OperatingSystem.IsWindows())
+                    ((PhotinoWindow)sender!).MoveTo(OffScreenX, OffScreenY, true);
 
                 // Windows：补全系统菜单和最小化样式，启用任务栏点击最小化/恢复
                 if (OperatingSystem.IsWindows())
@@ -88,6 +89,11 @@ partial class Program
                     SetWindowPos(hWnd, 0, 0, 0, 0, 0,
                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
                 }
+
+                // macOS：Photino 的 SetTransparent 是空实现，窗口创建后手动补齐原生透明属性。
+                // --opaque 回退模式下保持不透明，跳过本步骤
+                if (OperatingSystem.IsMacOS() && !opaque)
+                    MacWindowTransparency.TryApply();
             })
             // 前端 Web 消息接收处理器
             .RegisterWebMessageReceivedHandler((object? sender, string message) =>
@@ -100,7 +106,10 @@ partial class Program
                     // 首帧已上屏（前端在双 rAF 之后才发消息），此时把窗口从屏幕外移回屏幕中央，
                     // 用户看到的第一眼就是渲染完成的 UI，不会看到 WebView2 首帧前的黑底
                     window.Invoke(() => window.Center());
-                    Log.Info("[Window] 前端已就绪，窗口已显示");
+                    // 记录实际尺寸/位置：便于排查 macOS/Linux 窗口未上屏或尺寸异常
+                    var size = window.Size;
+                    var location = window.Location;
+                    Log.Info($"[Window] 前端已就绪，窗口已显示（{size.Width}x{size.Height} @ {location.X},{location.Y}）");
                 }
 
                 try
@@ -223,7 +232,20 @@ partial class Program
                     {
                         var gamePath = root.TryGetProperty("path", out var p) ? p.GetString() ?? "" : "";
                         if (string.IsNullOrEmpty(gamePath))
-                            gamePath = Path.Combine(AppContext.BaseDirectory, ".minecraft");
+                        {
+                            // 便携优先：可执行文件旁存在 .minecraft 时使用它（Windows/Linux 便携运行）
+                            var portable = Path.Combine(AppContext.BaseDirectory, ".minecraft");
+                            if (Directory.Exists(portable))
+                                gamePath = portable;
+                            else if (OperatingSystem.IsMacOS())
+                                // macOS .app 的可执行文件位于 Contents/MacOS 内，
+                                // 不能把游戏目录放进 bundle；回退到官方启动器的标准目录
+                                gamePath = Path.Combine(
+                                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                                    "Library", "Application Support", "minecraft");
+                            else
+                                gamePath = portable;
+                        }
                         ScanGames(window, gamePath);
                         return;
                     }
@@ -294,6 +316,17 @@ partial class Program
             })
             // 加载前端页面（load WebView2 content）
             .Load(appUrl);
+
+        // macOS/Linux：窗口创建时即居中显示（WebKit 需要窗口可见才会驱动 rAF，见上方 SetLocation 注释）
+        if (!OperatingSystem.IsWindows())
+            window.Centered = true;
+
+        // WebView2 的 Chromium 启动参数仅适用于 Windows：
+        // Photino 在 macOS/Linux 上把该字段当作 WebKit 设置 JSON 解析
+        // （Photino.Mac.mm / Photino.Linux.cpp 中 json::parse），传入 "--disable-gpu ..."
+        // 会让原生层抛 nlohmann::json parse_error，异常未捕获直接 SIGABRT。
+        if (OperatingSystem.IsWindows())
+            window.SetBrowserControlInitParameters(WebViewArgumentsBuilder.Build(scale));
 
         return window;
     }

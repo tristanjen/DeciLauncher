@@ -36,7 +36,8 @@
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <!-- 自包含发布：运行时内嵌，无需用户安装 .NET 运行时（仅发布时生效，普通 build/test 保持框架依赖） -->
         <SelfContained Condition="'$(IsPublishing)' == 'true'">true</SelfContained>
-        <!-- 启用 IL 裁剪（partial 模式：仅裁剪明确标记的程序集，兼容反射与 ASP.NET 托管） -->
+        <!-- 启用 IL 裁剪（框架程序集裁剪；主程序集通过 TrimmerRootAssembly 完整保留，
+             见下方 ItemGroup——否则匿名类型的反射序列化元数据会被裁掉，发布版前端消息退化为 {}） -->
         <PublishTrimmed>true</PublishTrimmed>
         <!-- PublishTrimmed 会自动把 JsonSerializerIsReflectionEnabledByDefault 注入为 false，
              而本启动器的全部前端消息依赖反射序列化匿名对象，显式覆盖回 true -->
@@ -106,9 +107,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- 裁剪器根程序集：保留 MinecraftLaunch 库所需的程序集。
+        <!-- 裁剪器根程序集：保留 MinecraftLaunch 库与主程序集。
+             主程序集必须完整保留：前端消息全部依赖反射序列化匿名对象，
+             full 裁剪会移除匿名类型的属性元数据（发布版消息退化为 {}，macOS 实测）。
              启动器的反射赋值（JavaEntry.JavaPath / MinecraftProcess.Process，均为 init-only 属性）
              已收敛到 Launching/MinecraftLaunchFallbacks.cs 单一入口 -->
+        <TrimmerRootAssembly Include="Deci Launcher" />
         <TrimmerRootAssembly Include="MinecraftLaunch" />
         <TrimmerRootAssembly Include="MinecraftLaunch.Base" />
     </ItemGroup>

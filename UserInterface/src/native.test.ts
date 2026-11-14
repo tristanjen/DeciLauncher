@@ -7,7 +7,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 type NativeModule = typeof import('./native')
 
 function fakeExternal() {
-  return { sendMessage: vi.fn(), receiveMessage: undefined as ((m: string) => void) | undefined }
+  // Photino macOS/Linux 的约定：receiveMessage 是注册函数，调用它以订阅消息；
+  // 直接赋值会覆盖注册函数（macOS 实测会导致所有后端消息静默丢失）
+  let receiver: ((message: string) => void) | undefined
+  return {
+    sendMessage: vi.fn(),
+    receiveMessage: vi.fn((callback: (message: string) => void) => { receiver = callback }),
+    deliver(message: string) { receiver?.(message) },
+  }
 }
 
 let external: ReturnType<typeof fakeExternal>
@@ -17,8 +24,15 @@ beforeEach(async () => {
   vi.resetModules()
   external = fakeExternal()
   window.external = external as unknown as Window['external']
-  // 模块加载时会把 dispatch 写入 receiveMessage
+  // 模块加载时应调用 receiveMessage(dispatch) 注册回调
   native = await import('./native')
+})
+
+it('通过 receiveMessage(callback) 注册接收通道，而非直接赋值', () => {
+  expect(external.receiveMessage).toHaveBeenCalledOnce()
+  expect(external.receiveMessage).toHaveBeenCalledWith(expect.any(Function))
+  // 若被赋值覆盖，注册函数本身会丢失，deliver 也拿不到回调
+  external.deliver('{"type":"__probe__"}')
 })
 
 describe('sendNative', () => {
@@ -44,7 +58,7 @@ describe('onNativeMessage 分发', () => {
     const handler = vi.fn()
     native.onNativeMessage('game-list', handler)
 
-    window.external.receiveMessage!('{"type":"game-list","path":"/mc","games":[]}')
+    external.deliver('{"type":"game-list","path":"/mc","games":[]}')
 
     expect(handler).toHaveBeenCalledOnce()
     expect(handler).toHaveBeenCalledWith({ path: '/mc', games: [] })
@@ -56,7 +70,7 @@ describe('onNativeMessage 分发', () => {
     native.onNativeMessage('account-error', a)
     native.onNativeMessage('account-error', b)
 
-    window.external.receiveMessage!(msg('account-error', { message: 'x' }))
+    external.deliver(msg('account-error', { message: 'x' }))
 
     expect(a).toHaveBeenCalledWith({ message: 'x' })
     expect(b).toHaveBeenCalledWith({ message: 'x' })
@@ -67,16 +81,16 @@ describe('onNativeMessage 分发', () => {
     const off = native.onNativeMessage('game-exited', handler)
     off()
 
-    window.external.receiveMessage!(msg('game-exited'))
+    external.deliver(msg('game-exited'))
 
     expect(handler).not.toHaveBeenCalled()
   })
 
   it('未注册的消息类型与损坏 JSON 均静默忽略', () => {
     expect(() => {
-      window.external.receiveMessage!(msg('__unknown__'))
-      window.external.receiveMessage!('{ not json')
-      window.external.receiveMessage!('')
+      external.deliver(msg('__unknown__'))
+      external.deliver('{ not json')
+      external.deliver('')
     }).not.toThrow()
   })
 
@@ -84,7 +98,7 @@ describe('onNativeMessage 分发', () => {
     const handler = vi.fn()
     native.onNativeMessage('game-exited', handler)
 
-    window.external.receiveMessage!(JSON.stringify({ foo: 1 }))
+    external.deliver(JSON.stringify({ foo: 1 }))
 
     expect(handler).not.toHaveBeenCalled()
   })

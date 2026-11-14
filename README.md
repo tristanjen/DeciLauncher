@@ -40,6 +40,8 @@ A cross-platform Minecraft Launcher built with C#/.NET 10 + Photino.NET + Vue 3.
 
 The environment variable `DECILAUNCHER_OPAQUE=1` has the same effect as `--opaque`.
 
+On macOS, Photino does not implement transparent windows natively; the launcher applies the native AppKit transparency properties after the window is created. If rendering is still wrong, `--opaque` falls back to an opaque window.
+
 ## Troubleshooting
 
 ### The window is empty or fully transparent
@@ -58,7 +60,8 @@ Only one instance may run at a time. Close the other instance and start again. N
 | Platform | Path |
 |----------|------|
 | Windows | `%AppData%\.decilc\logs\latest.log` |
-| Linux / macOS | `~/.config/.decilc/logs/latest.log` |
+| Linux | `~/.config/.decilc/logs/latest.log` |
+| macOS | `~/Library/Application Support/.decilc/logs/latest.log` |
 
 If that folder cannot be created (restricted environment), the launcher falls back to `logs/latest.log` next to the executable.
 Three generations are kept (`latest.log`, `latest.1.log`, `latest.2.log`) and the logs never leave your machine.

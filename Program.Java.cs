@@ -1,5 +1,7 @@
 // Java 运行时自动检测
 using MinecraftLaunch.Utilities;
+// JavaEntry（Java 运行时信息）
+using MinecraftLaunch.Base.Models.Game;
 // JSON 序列化（替换手拼 JSON）
 using System.Text.Json;
 // Photino 窗口（前端消息回传）
@@ -42,14 +44,33 @@ partial class Program
             }
 
             var items = new List<object>();
+            var seenPaths = new HashSet<string>(StringComparer.Ordinal);
 
-            await foreach (var java in JavaUtil.EnumerableJavaAsync())
+            if (OperatingSystem.IsWindows())
             {
-                items.Add(new
+                // Windows：沿用 MinecraftLaunch 的注册表 + `where javaw` 扫描
+                await foreach (var java in JavaUtil.EnumerableJavaAsync())
+                    AddJavaItem(items, seenPaths, java);
+            }
+            else
+            {
+                // MinecraftLaunch 4.0.7 的 Unix 扫描依赖 `whereis -b java` 的输出来判断路径，
+                // 但 whereis 实际输出 "java: /usr/bin/java"（整行不是路径），File.Exists 必然失败，
+                // 导致 macOS/Linux 扫描恒为空；且 macOS 的 /usr/bin/java 只是系统存根。
+                // 这里自行枚举常见位置，再复用库的 GetJavaInfoAsync 解析版本。
+                foreach (var candidate in EnumerateJavaCandidates())
                 {
-                    path = java.JavaPath,
-                    version = java.JavaVersion ?? ""
-                });
+                    try
+                    {
+                        var java = await JavaUtil.GetJavaInfoAsync(candidate);
+                        AddJavaItem(items, seenPaths, java);
+                    }
+                    catch (Exception ex)
+                    {
+                        // 不可用的候选（如未安装 JVM 时的 /usr/bin/java 存根）跳过即可
+                        Log.Warn($"[Java] 无法解析 {candidate}: {ex.Message}");
+                    }
+                }
             }
 
             // 已被更新请求取代：丢弃结果，避免旧扫描覆盖新缓存或乱序回发
@@ -72,5 +93,96 @@ partial class Program
                 message = ex.Message
             }));
         }
+    }
+
+    /// <summary>
+    /// 将解析成功的 Java 加入结果（跳过空版本与重复路径）。
+    /// 去重按解析符号链接后的真实路径：JAVA_HOME 与 PATH 常指向同一 JDK。
+    /// </summary>
+    private static void AddJavaItem(List<object> items, HashSet<string> seenPaths, JavaEntry? java)
+    {
+        if (java == null || string.IsNullOrEmpty(java.JavaVersion) || string.IsNullOrEmpty(java.JavaPath))
+            return;
+
+        string key;
+        try { key = File.ResolveLinkTarget(java.JavaPath, true)?.FullName ?? Path.GetFullPath(java.JavaPath); }
+        catch { key = Path.GetFullPath(java.JavaPath); }
+
+        if (!seenPaths.Add(key)) return;
+        items.Add(new
+        {
+            path = java.JavaPath,
+            version = java.JavaVersion
+        });
+    }
+
+    /// <summary>
+    /// 枚举非 Windows 平台可能安装 Java 的位置：
+    /// JAVA_HOME、PATH、系统 JVM 目录（macOS 的 JavaVirtualMachines / Linux 的 /usr/lib/jvm 等）。
+    /// 仅返回真实存在的文件，版本解析交给 JavaUtil.GetJavaInfoAsync。
+    /// </summary>
+    private static IEnumerable<string> EnumerateJavaCandidates()
+    {
+        var candidates = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        void Add(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
+            string key;
+            try { key = File.ResolveLinkTarget(path, true)?.FullName ?? Path.GetFullPath(path); }
+            catch { key = Path.GetFullPath(path); }
+            if (seen.Add(key)) candidates.Add(path);
+        }
+
+        void AddJavaHomes(string root, string relativeJavaPath)
+        {
+            try
+            {
+                if (!Directory.Exists(root)) return;
+                foreach (var home in Directory.EnumerateDirectories(root))
+                    Add(Path.Combine(home, relativeJavaPath));
+            }
+            catch (Exception ex)
+            {
+                // 权限不足等：忽略该目录，继续其它候选
+                Log.Warn($"[Java] 无法枚举 {root}: {ex.Message}");
+            }
+        }
+
+        // 1) JAVA_HOME（优先真实路径：macOS 的 /usr/bin/java 只是系统存根）
+        var javaHome = Environment.GetEnvironmentVariable("JAVA_HOME");
+        if (!string.IsNullOrWhiteSpace(javaHome))
+            Add(Path.Combine(javaHome, "bin", "java"));
+
+        // 2) 平台标准安装目录
+        if (OperatingSystem.IsMacOS())
+        {
+            // macOS JDK 的布局为 <JVM>.jdk/Contents/Home/bin/java
+            AddJavaHomes("/Library/Java/JavaVirtualMachines", Path.Combine("Contents", "Home", "bin", "java"));
+            AddJavaHomes(Path.Combine(userHome, "Library", "Java", "JavaVirtualMachines"),
+                Path.Combine("Contents", "Home", "bin", "java"));
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            AddJavaHomes("/usr/lib/jvm", Path.Combine("bin", "java"));
+            AddJavaHomes("/usr/java", Path.Combine("bin", "java"));
+            AddJavaHomes("/opt/java", Path.Combine("bin", "java"));
+            AddJavaHomes(Path.Combine(userHome, ".sdkman", "candidates", "java"), Path.Combine("bin", "java"));
+        }
+
+        // 3) PATH 中的 java（Homebrew / SDKMAN / 手动解压的 JDK 通常只在这里）。
+        // macOS 的 /usr/bin/java 是系统存根：已找到真实 JDK 时跳过，避免同一版本重复展示
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "")
+                     .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = Path.Combine(dir, "java");
+            if (OperatingSystem.IsMacOS() && candidate == "/usr/bin/java" && candidates.Count > 0)
+                continue;
+            Add(candidate);
+        }
+
+        return candidates;
     }
 }

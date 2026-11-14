@@ -12,7 +12,9 @@ const model = defineModel<boolean>({ default: false })
 </script>
 
 <template>
-  <Teleport to="#main-card">
+  <!-- defer：目标 #main-card 由 App.vue 自身渲染，挂载时尚未进入 document，
+       立即解析会得到 null（Vue 警告，弹窗不渲染）；延迟到挂载完成后再解析 -->
+  <Teleport to="#main-card" defer>
     <Transition name="notify">
       <div v-if="model" class="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
         <Transition name="card" appear>

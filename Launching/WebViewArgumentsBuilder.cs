@@ -1,4 +1,7 @@
 // WebView2 启动参数构建（纯函数，便于单元测试）。
+// 仅限 Windows 使用：Photino 把 BrowserControlInitParameters 原样交给原生层，
+// WebView2 将其作为 Chromium 命令行参数，而 macOS/Linux 的 WebKit 实现把它当作
+// WebKit 设置 JSON 解析——跨平台传入会触发原生 json 解析异常（见 Program.Window.cs）。
 // 说明：--disable-gpu（软件渲染）沿用 5e0f163 的省内存设计——本启动器是静态 UI，
 // 实测它与 SetTransparent(true) 的透明合成兼容，且与"首帧黑底闪现"无关
 // （该闪现的成因是 WebView2 首帧之前的不透明表面，靠"就绪后再显示窗口"解决，见 Program.Window.cs）。
