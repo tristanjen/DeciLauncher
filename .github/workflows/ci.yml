@@ -275,7 +275,8 @@ jobs:
           set -e
           BIN="${{ env.PUBLISH_DIR }}/Deci Launcher"
           APP="DeciLauncher.app"
-          ICON="packaging/icon.png"
+          # macOS 使用带约 10% 透明留白的版本（符合系统图标网格，避免 Dock/Finder 中显得过大）
+          ICON="packaging/icon-macos.png"
 
           mkdir -p "${APP}/Contents/MacOS"
           mkdir -p "${APP}/Contents/Resources"
@@ -283,6 +284,11 @@ jobs:
           cp "$BIN" "${APP}/Contents/MacOS/DeciLauncher"
           cp packaging/Info.plist "${APP}/Contents/"
           chmod +x "${APP}/Contents/MacOS/DeciLauncher"
+
+          # 版本号单一来源：从 csproj 读取的 VERSION 注入 bundle 元数据。
+          # CFBundleVersion 只允许数字和点，故去掉 -beta.2 等预发布后缀
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "${APP}/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION%%-*}" "${APP}/Contents/Info.plist"
 
           mkdir MyIcon.iconset
           sips -z 16 16   "$ICON" --out MyIcon.iconset/icon_16x16.png
@@ -298,8 +304,10 @@ jobs:
           iconutil -c icns MyIcon.iconset
           cp MyIcon.icns "${APP}/Contents/Resources/AppIcon.icns"
 
-          # Create .dmg（显式 size 避免 RAM disk 空间不足，UDZO 压缩减小产物）
-          hdiutil create -volname "Deci Launcher" -srcfolder "$APP" -ov -format UDZO -size 500m "DeciLauncher-$VERSION-${{ matrix.rid }}.dmg"
+          # DMG：.app + /Applications 快捷方式，并在 Finder 中居中两个图标
+          # （脚本内部处理 UDRW → Finder 布局 → UDZO；无 GUI 时自动跳过布局）
+          chmod +x packaging/make-dmg.sh
+          ./packaging/make-dmg.sh "$APP" "DeciLauncher-$VERSION-${{ matrix.rid }}.dmg" "Deci Launcher"
       - uses: actions/upload-artifact@v4
         if: runner.os == 'macOS'
         with:
