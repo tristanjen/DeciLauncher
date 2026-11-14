@@ -239,10 +239,10 @@ partial class Program
                                 gamePath = portable;
                             else if (OperatingSystem.IsMacOS())
                                 // macOS .app 的可执行文件位于 Contents/MacOS 内，
-                                // 不能把游戏目录放进 bundle；默认使用 ~/.decil/.minecraft
+                                // 不能把游戏目录放进 bundle；默认使用 ~/.decilc/.minecraft
                                 gamePath = Path.Combine(
                                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                                    ".decil", ".minecraft");
+                                    ".decilc", ".minecraft");
                             else
                                 gamePath = portable;
                         }
