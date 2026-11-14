@@ -14,9 +14,12 @@ namespace DeciLauncher;
 
 partial class Program
 {
-    // 账户配置文件路径（%AppData%\.decilc\accounts.json）
-    internal static readonly string AccountsDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".decilc");
+    // 账户配置目录：
+    // Windows: %AppData%\.decilc
+    // macOS/Linux: ~/.config/.decilc（macOS 显式指定，避免落到 ~/Library/Application Support）
+    internal static readonly string AccountsDir = OperatingSystem.IsMacOS()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", ".decilc")
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".decilc");
     private static readonly string AccountsFilePath = Path.Combine(AccountsDir, "accounts.json");
     // 已创建的账户列表
     private static readonly List<AccountEntry> Accounts = [];
@@ -43,6 +46,8 @@ partial class Program
     /// </summary>
     private static void LoadAccounts()
     {
+        // macOS 旧账户目录（~/Library/Application Support/.decilc）→ ~/.config/.decilc
+        MigrateMacAccounts();
         // 迁移旧 Config/accounts.json → 新位置
         MigrateOldAccounts();
 
@@ -86,6 +91,36 @@ partial class Program
             var skin = elem.TryGetProperty("skinModel", out var s) ? s.GetString() ?? "steve" : "steve";
             if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(uuid))
                 Accounts.Add(new AccountEntry(username, uuid, type, skin));
+        }
+    }
+
+    /// <summary>
+    /// macOS 旧账户目录（~/Library/Application Support/.decilc）迁移到 ~/.config/.decilc。
+    /// 只在目标文件不存在时搬移，避免覆盖新目录中的账户；旧目录中的日志/锁文件不处理。
+    /// </summary>
+    private static void MigrateMacAccounts()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var legacyDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".decilc");
+        if (string.Equals(legacyDir, AccountsDir, StringComparison.Ordinal)) return;
+
+        foreach (var name in new[] { "accounts.json", "accounts.json.bak" })
+        {
+            var oldPath = Path.Combine(legacyDir, name);
+            var newPath = Path.Combine(AccountsDir, name);
+            if (!File.Exists(oldPath) || File.Exists(newPath)) continue;
+            try
+            {
+                Directory.CreateDirectory(AccountsDir);
+                File.Move(oldPath, newPath);
+                Log.Info($"[Accounts] 已迁移旧账户文件: {oldPath} -> {newPath}");
+            }
+            catch (Exception ex)
+            {
+                Log.Warn($"[Accounts] 迁移旧账户文件失败: {ex.Message}");
+            }
         }
     }
 
