@@ -12,6 +12,8 @@ import { launching, gameRunning, launchStage } from '../stores/launch'
 // 自定义控件
 import PrimaryButton from '../components/Controls/PrimaryButton.vue'
 import DefaultButton from '../components/Controls/DefaultButton.vue'
+// Lucide 图标
+import { LoaderCircle, Play, Square, X } from '@lucide/vue'
 // 国际化翻译
 import { t } from '../stores/locale'
 
@@ -75,28 +77,21 @@ const buttonText = computed(() => {
     </div>
     <!-- 取消/启动/关闭游戏按钮 -->
     <div class="flex justify-end gap-2">
-      <Transition name="cancel-btn">
-        <DefaultButton v-if="launching" size="lg" @click="cancelLaunch">{{ t('common.cancel') }}
+      <Transition enter-active-class="animate__animated animate__zoomIn"
+        leave-active-class="animate__animated animate__zoomOut">
+        <DefaultButton v-if="launching" size="lg" @click="cancelLaunch">
+          <X class="size-4" aria-hidden="true" />
+          {{ t('common.cancel') }}
         </DefaultButton>
       </Transition>
       <PrimaryButton size="lg" :variant="gameRunning ? 'danger' : 'primary'"
         :disabled="launching || (!gameRunning && (!selectedGame || !selectedAccount))"
         @click="gameRunning ? closeGame() : launch()">
+        <LoaderCircle v-if="launching" class="size-4 animate-spin" aria-hidden="true" />
+        <Square v-else-if="gameRunning" class="size-4" aria-hidden="true" />
+        <Play v-else class="size-4" aria-hidden="true" />
         {{ buttonText }}
       </PrimaryButton>
     </div>
   </div>
 </template>
-
-<style scoped>
-.cancel-btn-leave-active,
-.cancel-btn-enter-active {
-  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
-}
-
-.cancel-btn-enter-from,
-.cancel-btn-leave-to {
-  transform: scale(0);
-  opacity: 0;
-}
-</style>

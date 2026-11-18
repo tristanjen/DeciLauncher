@@ -16,7 +16,7 @@ const version = ref('')
 // 开源项目致谢（项目名为专有名词，不参与翻译）
 const projects = [
   '.NET', 'ASP.NET Core', 'Photino.NET', 'MinecraftLaunch', 'Vue',
-  'Vite', 'Tailwind CSS', 'Reka UI', 'TypeScript', 'xUnit', 'pnpm'
+  'Vite', 'Tailwind CSS', 'Reka UI', 'Lucide', 'Animate.css', 'TypeScript', 'xUnit', 'pnpm'
 ]
 
 // 注册 app-info 响应监听（返回卸载函数）

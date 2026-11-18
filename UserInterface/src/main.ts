@@ -45,6 +45,8 @@ document.addEventListener('contextmenu', (e: MouseEvent) => {
 })
 
 // Vue 应用入口 — 初始化并挂载到 DOM
+// Animate.css：Vue 页面/内容过渡（Reka 浮层仍使用 data-state 动画）
+import 'animate.css'
 // 导入全局样式入口（Tailwind CSS v4 + 设计 token + body/滚动条等基础样式）
 import './assets/main.css'
 

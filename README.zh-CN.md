@@ -20,7 +20,7 @@
   <a href="README.md">English</a> | <strong>简体中文</strong>
 </p>
 
-Deci Launcher 是一个轻量、跨平台的 Minecraft 启动器，使用 **C#/.NET 10 + Photino.NET** 构建后端，**Vue 3 + Tailwind CSS + Reka UI** 构建界面。它专注于「扫描本机已安装的游戏版本 → 选择 Java → 启动游戏」这条核心路径，提供原生透明窗口、离线账户、崩溃分析和完全本地的运行方式。
+Deci Launcher 是一个轻量、跨平台的 Minecraft 启动器，使用 **C#/.NET 10 + Photino.NET** 构建后端，**Vue 3 + Tailwind CSS + Reka UI** 构建界面，图标使用 Lucide、过渡动画使用 Animate.css。它专注于「扫描本机已安装的游戏版本 → 选择 Java → 启动游戏」这条核心路径，提供原生透明窗口、离线账户、崩溃分析和完全本地的运行方式。
 
 > 当前处于 **Beta** 阶段，版本号见 [`DeciLauncher.csproj`](DeciLauncher.csproj) 的 `<Version>`。
 
@@ -48,7 +48,7 @@ Deci Launcher 是一个轻量、跨平台的 Minecraft 启动器，使用 **C#/.
 ### 界面与体验
 
 - **原生透明窗口** — 无边框自定义标题栏，Windows / macOS 上透明背景与圆角卡片；`--opaque` 可回退为不透明窗口。
-- **绿色极简主题** — 统一的 Tailwind CSS 设计语言与 `deci-*` 语义 token、过渡动画和轻量布局。
+- **绿色极简主题** — Tailwind CSS 与 `deci-*` 语义 token、Reka UI 原语、Lucide 图标、Animate.css 过渡和轻量布局。
 - **中英文界面** — 内置 `zh-CN` / `en-US`，可在设置中切换。
 - **单实例保护** — 重复启动会提示「已经在运行」并退出，避免两个实例同时操作同一 `.minecraft`。
 - **窗口拖拽 / 最小化 / 关闭** — 均由前端标题栏通过消息桥驱动。
@@ -281,6 +281,8 @@ macOS 的 `.app` 由 CI 组装 `Info.plist`、`AppIcon.icns` 并注入版本；D
 | [Vite](https://github.com/vitejs/vite) | 前端构建工具 | MIT |
 | [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | 原子化 CSS 框架 | MIT |
 | [Reka UI](https://github.com/unovue/reka-ui) | 无头可访问 UI 原语 | MIT |
+| [Lucide](https://github.com/lucide-icons/lucide) | 图标库 | ISC |
+| [Animate.css](https://github.com/animate-css/animate.css) | CSS 动画库 | MIT |
 | [TypeScript](https://github.com/microsoft/TypeScript) | 类型化 JavaScript | Apache-2.0 |
 | [xUnit](https://github.com/xunit/xunit) | 测试框架 | Apache-2.0 |
 | [pnpm](https://github.com/pnpm/pnpm) | 包管理器 | MIT |

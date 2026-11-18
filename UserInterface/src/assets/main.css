@@ -2,6 +2,11 @@
 
 @import "tailwindcss";
 
+/* Animate.css：桌面端过渡保持轻快（Reka 浮层仍使用下方 data-state 动画） */
+:root {
+  --animate-duration: 0.2s;
+}
+
 /* 设计 token：绿色极简主题的唯一来源，组件与视图只使用语义类名 */
 @theme {
   /* 品牌绿 */

@@ -13,6 +13,8 @@ import {
   SelectViewport,
   type AcceptableValue
 } from 'reka-ui'
+// Lucide 图标
+import { Check, ChevronDown } from '@lucide/vue'
 
 export interface DropdownOption {
   label: string
@@ -63,11 +65,8 @@ function onChange(value: AcceptableValue) {
              hover:border-deci-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/25">
       <SelectValue :placeholder="effectivePlaceholder" class="grow truncate text-left" />
       <SelectIcon>
-        <svg class="ml-1 size-3 shrink-0 transition duration-150 group-data-[state=open]:rotate-180"
-          viewBox="0 0 12 12">
-          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
+        <ChevronDown :size="12" :stroke-width="1.5" aria-hidden="true"
+          class="ml-1 shrink-0 transition duration-150 group-data-[state=open]:rotate-180" />
       </SelectIcon>
     </SelectTrigger>
     <!-- 下拉面板：popper 定位，默认挂载到 body 避免被卡片 overflow 裁剪 -->
@@ -84,10 +83,7 @@ function onChange(value: AcceptableValue) {
                    data-[state=checked]:bg-deci-soft data-[state=checked]:text-deci-primary-active">
             <SelectItemText class="truncate">{{ o.label }}</SelectItemText>
             <SelectItemIndicator class="absolute right-2 inline-flex items-center">
-              <svg class="size-3" viewBox="0 0 12 12">
-                <path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="1.5" fill="none"
-                  stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <Check :size="12" :stroke-width="1.5" aria-hidden="true" />
             </SelectItemIndicator>
           </SelectItem>
         </SelectViewport>

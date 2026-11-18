@@ -3,6 +3,8 @@
 import { ref, watch } from 'vue'
 // Reka UI 单选组：为账户列表提供键盘导航与 ARIA 语义
 import { RadioGroupItem, RadioGroupRoot, type AcceptableValue } from 'reka-ui'
+// Lucide 图标
+import { Copy, Globe, LogIn, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 // 前端 ↔ C# 后端消息桥
 import { sendNative } from '../native'
 // 全局共享状态（账户列表）
@@ -109,24 +111,30 @@ function typeColor(type: string): string {
 
 <template>
   <div class="grow flex flex-col gap-3 relative">
-    <!-- 操作栏：三个账户按钮 + 刷新按钮 -->
-    <div class="flex gap-2 items-center">
+    <!-- 操作栏：三个账户按钮 + 刷新按钮（英文文案较长时允许换行） -->
+    <div class="flex flex-wrap gap-2 items-center">
       <DefaultButton @click="showCreateModal = true">
+        <Plus class="size-4" aria-hidden="true" />
         {{ t('accounts.createOffline') }}
       </DefaultButton>
       <DefaultButton disabled>
+        <LogIn class="size-4" aria-hidden="true" />
         {{ t('accounts.loginMicrosoft') }}
       </DefaultButton>
       <DefaultButton disabled>
+        <Globe class="size-4" aria-hidden="true" />
         {{ t('accounts.loginThirdParty') }}
       </DefaultButton>
       <DefaultButton class="ml-auto" :loading="accountBusy" :loading-text="t('common.refreshing')"
         :disabled="accountBusy" @click="refreshAccounts">
+        <RefreshCw class="size-4" :class="accountBusy && 'animate-spin'" aria-hidden="true" />
         {{ t('common.refresh') }}
       </DefaultButton>
     </div>
     <!-- 账户内容区：下拉弹入动画 -->
-    <Transition name="content-drop" appear>
+    <Transition appear
+      enter-active-class="animate__animated animate__fadeInDown"
+      leave-active-class="animate__animated animate__fadeOutUp">
       <div v-if="!accountBusy" key="accounts" class="grow flex flex-col gap-2">
         <!-- 账户列表：Reka RadioGroup（as="div" 允许行内嵌套复制/删除按钮） -->
         <RadioGroupRoot v-if="accounts.length > 0" :model-value="selectedAccount" orientation="vertical"
@@ -149,17 +157,12 @@ function typeColor(type: string): string {
             <!-- 复制 UUID 按钮 -->
             <IconButton class="ml-auto" variant="list" :label="t('accounts.copyUuid')"
               @click="copyUuid(a.uuid)" @keydown.stop>
-              <svg class="size-3" viewBox="0 0 12 12">
-                <rect x="3" y="2" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.2" fill="none" />
-                <path d="M2 4V11H8" stroke="currentColor" stroke-width="1.2" fill="none" />
-              </svg>
+              <Copy :size="12" :stroke-width="1.5" aria-hidden="true" />
             </IconButton>
             <!-- 删除按钮（推到最右） -->
             <IconButton variant="list" color="red" :label="t('accounts.delete')"
               @click="deleteAccount(a.uuid)" @keydown.stop>
-              <svg class="size-3" viewBox="0 0 12 12">
-                <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-              </svg>
+              <Trash2 :size="12" :stroke-width="1.5" aria-hidden="true" />
             </IconButton>
           </RadioGroupItem>
         </RadioGroupRoot>
@@ -186,21 +189,5 @@ function typeColor(type: string): string {
 <style scoped>
 .image-pixelated {
   image-rendering: pixelated;
-}
-
-.content-drop-enter-active {
-  animation: content-drop 0.3s cubic-bezier(0.42, 1.5, 0.58, 1);
-}
-
-@keyframes content-drop {
-  from {
-    opacity: 0;
-    transform: translateY(-64px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 </style>

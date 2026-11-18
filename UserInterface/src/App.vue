@@ -120,7 +120,9 @@ onMounted(async () => {
       <!-- vue-router 5：<router-view> 不能直接放在 <transition> 内，
            必须通过 v-slot 取出组件再由 <component> 渲染（否则路由切换动画失效并告警） -->
       <RouterView v-slot="{ Component }">
-        <Transition name="fade" mode="out-in">
+        <Transition mode="out-in"
+          enter-active-class="animate__animated animate__fadeIn"
+          leave-active-class="animate__animated animate__fadeOut">
           <component :is="Component" :key="$route.matched[0]?.name"
             class="grow p-3 rounded-b-lg overflow-y-auto scroll-smooth" />
         </Transition>
@@ -131,20 +133,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.fade-enter-active {
-  transition: opacity 0.15s ease-out, transform 0.2s cubic-bezier(0.42, 1.5, 0.58, 1);
-}
-
-
-.fade-leave-active {
-  transition: opacity 0.1s ease-out, transform 0.1s cubic-bezier(0.42, 1.5, 0.58, 1);
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-</style>

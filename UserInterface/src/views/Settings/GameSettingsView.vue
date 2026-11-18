@@ -13,6 +13,8 @@ import DefaultButton from '../../components/Controls/DefaultButton.vue'
 import RangeSlider from '../../components/Controls/RangeSlider.vue'
 // 卡片容器（设置内容分组外观）
 import Card from '../../components/Controls/Card.vue'
+// Lucide 图标
+import { LoaderCircle, ScanLine } from '@lucide/vue'
 
 /**
  * 向 C# 后端发起 Java 运行时扫描
@@ -70,6 +72,8 @@ function onDownloadSourceChange(value: string) {
         </div>
         <DefaultButton :loading="scanning" :loading-text="t('settings.scanning')" :disabled="scanning"
           @click="scanJava">
+          <LoaderCircle v-if="scanning" class="size-4 animate-spin" aria-hidden="true" />
+          <ScanLine v-else class="size-4" aria-hidden="true" />
           {{ t('settings.scan') }}
         </DefaultButton>
       </div>

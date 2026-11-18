@@ -20,7 +20,7 @@
   <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-Deci Launcher is a lightweight, cross-platform Minecraft launcher built with **C#/.NET 10 + Photino.NET** on the backend and **Vue 3 + Tailwind CSS + Reka UI** on the frontend. It focuses on the core path — scan installed game versions, pick a Java runtime, launch the game — and adds native transparent windows, offline accounts, crash analysis, and a fully local, telemetry-free experience.
+Deci Launcher is a lightweight, cross-platform Minecraft launcher built with **C#/.NET 10 + Photino.NET** on the backend and **Vue 3 + Tailwind CSS + Reka UI** on the frontend, with Lucide icons and Animate.css transitions. It focuses on the core path — scan installed game versions, pick a Java runtime, launch the game — and adds native transparent windows, offline accounts, crash analysis, and a fully local, telemetry-free experience.
 
 > **Beta**: the current version is defined by `<Version>` in [`DeciLauncher.csproj`](DeciLauncher.csproj).
 
@@ -48,7 +48,7 @@ Deci Launcher is a lightweight, cross-platform Minecraft launcher built with **C
 ### UI and experience
 
 - **Native transparent window** — chromeless custom title bar with a transparent background and rounded card on Windows and macOS; use `--opaque` to fall back to an opaque window.
-- **Minimal green theme** — a consistent Tailwind CSS design language with semantic `deci-*` tokens, transitions, and compact layouts.
+- **Minimal green theme** — Tailwind CSS with semantic `deci-*` tokens, Reka UI primitives, Lucide icons, Animate.css transitions, and compact layouts.
 - **Chinese and English UI** — built-in `zh-CN` / `en-US`, switchable in Settings.
 - **Single instance** — a second launch reports "already running" and exits, preventing two instances from touching the same `.minecraft`.
 - **Window dragging / minimizing / closing** — driven by the custom title bar through the native message bridge.
@@ -282,6 +282,8 @@ Before submitting, make sure:
 | [Vite](https://github.com/vitejs/vite) | Frontend build tool | MIT |
 | [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | Utility-first CSS framework | MIT |
 | [Reka UI](https://github.com/unovue/reka-ui) | Headless accessible UI primitives | MIT |
+| [Lucide](https://github.com/lucide-icons/lucide) | Icon library | ISC |
+| [Animate.css](https://github.com/animate-css/animate.css) | CSS animation library | MIT |
 | [TypeScript](https://github.com/microsoft/TypeScript) | Typed JavaScript | Apache-2.0 |
 | [xUnit](https://github.com/xunit/xunit) | Test framework | Apache-2.0 |
 | [pnpm](https://github.com/pnpm/pnpm) | Package manager | MIT |

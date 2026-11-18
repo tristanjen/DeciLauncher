@@ -13,6 +13,8 @@ import RadioItem from '../components/Controls/RadioItem.vue'
 import Card from '../components/Controls/Card.vue'
 // Reka UI 单选组：提供 roving tabindex、方向键切换与 ARIA 语义
 import { RadioGroupItem, RadioGroupRoot, type AcceptableValue } from 'reka-ui'
+// Lucide 图标
+import { FolderOpen, RefreshCw } from '@lucide/vue'
 // 国际化翻译
 import { t } from '../stores/locale'
 // 内置加载器 logo（官方品牌图标，许可见 loaders/README.md）
@@ -92,21 +94,27 @@ function onGameSelect(value: AcceptableValue) {
   <div class="grow flex flex-col gap-3 overflow-y-auto min-h-0 scroll-smooth">
     <!-- 标题行：游戏来源 + 浏览/刷新按钮 -->
     <div class="flex items-center justify-between">
-      <span class="text-xs text-gray-500">{{ t('games.directory', { path: gamePath }) }}</span>
+      <span class="min-w-0 truncate text-xs text-gray-500">{{ t('games.directory', { path: gamePath }) }}</span>
       <div class="flex gap-2">
-        <DefaultButton @click="pickGamePath">{{ t('games.browse') }}</DefaultButton>
+        <DefaultButton @click="pickGamePath">
+          <FolderOpen class="size-4" aria-hidden="true" />
+          {{ t('games.browse') }}
+        </DefaultButton>
         <DefaultButton
           :loading="scanningGames"
           :loading-text="t('common.refreshing')"
           :disabled="scanningGames"
           @click="scanGames"
         >
+          <RefreshCw class="size-4" :class="scanningGames && 'animate-spin'" aria-hidden="true" />
           {{ t('common.refresh') }}
         </DefaultButton>
       </div>
     </div>
     <!-- 游戏内容区：下拉弹入动画 -->
-    <Transition name="content-drop" appear>
+    <Transition appear
+      enter-active-class="animate__animated animate__fadeInDown"
+      leave-active-class="animate__animated animate__fadeOutUp">
       <div v-if="!scanningGames" key="games" class="grow flex flex-col gap-3">
         <RadioGroupRoot v-if="games.length > 0" :model-value="selectedGame" orientation="vertical"
           class="flex grow flex-col gap-3" @update:model-value="onGameSelect">
@@ -161,21 +169,5 @@ function onGameSelect(value: AcceptableValue) {
 <style scoped>
 .image-pixelated {
   image-rendering: pixelated;
-}
-
-.content-drop-enter-active {
-  animation: content-drop 0.3s cubic-bezier(0.42, 1.5, 0.58, 1);
-}
-
-@keyframes content-drop {
-  from {
-    opacity: 0;
-    transform: translateY(-64px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 </style>

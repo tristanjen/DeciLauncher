@@ -18,7 +18,7 @@ withDefaults(defineProps<{
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/40"
     :class="[
       variant === 'titlebar'
-        ? 'size-8 ease-out hover:bg-deci-border active:bg-deci-hover active:scale-90'
+        ? 'size-8 text-deci-primary ease-out hover:bg-deci-border active:bg-deci-hover active:scale-90'
         : 'size-6 opacity-0 group-hover:opacity-100',
       variant === 'list' && (color === 'red'
         ? 'text-gray-400 hover:text-red-400'

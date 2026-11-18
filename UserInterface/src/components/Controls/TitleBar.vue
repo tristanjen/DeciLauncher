@@ -12,6 +12,8 @@ import { useWindowDrag } from '../../composables/useWindowDrag'
 // 自定义控件：导航链接 + 图标按钮
 import NavLink from './NavLink.vue'
 import IconButton from './IconButton.vue'
+// Lucide 图标
+import { Minus, X } from '@lucide/vue'
 
 // 从 composable 获取 onMouseDown 处理函数和 send 消息发送函数
 const { onMouseDown, send } = useWindowDrag()
@@ -69,11 +71,11 @@ function handleLogoClick() {
     <div class="mr-2 flex flex-row-reverse gap-2">
       <!-- 关闭按钮：绿色悬停 + 深绿按下效果 -->
       <IconButton variant="titlebar" :label="t('titlebar.close')" @click="closeWindow">
-        <img class="pointer-events-none" src="../../assets/images/close.svg" alt="">
+        <X :size="18" :stroke-width="2" aria-hidden="true" />
       </IconButton>
       <!-- 最小化按钮：绿色悬停 + 深绿按下效果 -->
       <IconButton variant="titlebar" :label="t('titlebar.minimize')" @click="minimizeWindow">
-        <img class="pointer-events-none" src="../../assets/images/minimize.svg" alt="">
+        <Minus :size="18" :stroke-width="2" aria-hidden="true" />
       </IconButton>
     </div>
   </div>

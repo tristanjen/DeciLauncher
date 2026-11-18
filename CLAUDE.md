@@ -1,6 +1,6 @@
 # Deci Launcher — 开发指南（Agent）
 
-跨平台 Minecraft 启动器：**C#/.NET 10 + Photino.NET** 后端，**Vue 3 + Tailwind CSS + Reka UI** 前端，通过 WebView 原生消息桥通信。前端在 Release 下由内嵌 Kestrel（`127.0.0.1` 随机端口 + token/cookie）提供，Debug 下由 Vite 提供。
+跨平台 Minecraft 启动器：**C#/.NET 10 + Photino.NET** 后端，**Vue 3 + Tailwind CSS + Reka UI** 前端（Lucide 图标、Animate.css 过渡），通过 WebView 原生消息桥通信。前端在 Release 下由内嵌 Kestrel（`127.0.0.1` 随机端口 + token/cookie）提供，Debug 下由 Vite 提供。
 
 当前版本见 `DeciLauncher.csproj` 的 `<Version>`；前端 `UserInterface/package.json` 的 `version` 必须与之一致。
 
@@ -19,7 +19,7 @@
 | `Program.Dpi.cs` / `Program.Native.cs` / `Program.Version.cs` / `Program.LaunchNatives.cs` | DPI、P/Invoke、版本、native 匹配 |
 | `Launching/` | 纯函数组件：参数模板、路径映射、WebView 参数、反射 fallback 等 |
 | `Log.cs` / `AtomicFile.cs` / `GameLogBuffer.cs` / `GameMessages.cs` | 日志、原子写、游戏输出、消息常量 |
-| `UserInterface/` | Vue 3 + Tailwind CSS + Reka UI + Vite 前端（`src/views`、`components`、`stores`、`i18n`、`native.ts`） |
+| `UserInterface/` | Vue 3 + Tailwind CSS + Reka UI + Lucide + Vite 前端（`src/views`、`components`、`stores`、`i18n`、`native.ts`） |
 | `DeciLauncher.Tests/` | xUnit v4 测试 |
 | `packaging/` | 图标、`Info.plist`、`make-dmg.sh` |
 | `global.json` | .NET 10 MTP 测试模式配置 |
@@ -68,6 +68,8 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
 - 样式入口：`UserInterface/src/assets/main.css` 的 `@import "tailwindcss"` + `@theme`；颜色/阴影/动画全部走语义 token（`deci-*`），不要在模板里新增硬编码色值。
 - 交互原语：`Controls/` 是对 Reka UI 的薄封装——`Modal` → Dialog、`Notification` → AlertDialog、`Dropdown` → Select、`RangeSlider` → Slider、`Toast` → Toast、列表选择 → RadioGroup。按钮/卡片/输入框等 Reka 没有对应原语的组件保持手写 + Tailwind。
 - Reka UI 的浮层默认 portal 到 `body`；`Modal` / `Notification` 显式 portal 到 `#main-card`，避免圆角卡片裁剪丢失。
+- 图标统一用 `@lucide/vue` 的按需导入（`import { Play } from '@lucide/vue'`）；品牌/游戏图标（logo、loader、方块、Steve）继续用图片，不要新增手写 SVG 图标。
+- Vue `<Transition>` 用 Animate.css 类（`animate__animated animate__fadeIn` 等）；全局 `--animate-duration` 为 `0.2s`。Reka 浮层不要套 Animate.css，继续用 `data-[state]` 的 `deci-*` 动画。
 - Tailwind v4 的 important 修饰符是**后缀**（`text-deci-primary-active!`）；不要写 UnoCSS 的前缀形式 `!text-...`。
 - Reka UI 的 `SelectItem` **禁止** `value=""`（空值用于清空选择并显示 placeholder）；空值状态由 `Controls/Dropdown.vue` 统一映射为哨兵值。
 
@@ -107,20 +109,22 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
   - Finder 布局失败时脚本会跳过布局但保留 .app + Applications 链接。
 - `publish.ps1` 只产出 ZIP；`.app`/DMG 由 CI 或 `make-dmg.sh` 负责。
 - 版本号单一来源：csproj `<Version>`；`package.json` 必须同步；`Info.plist` 由 CI 注入。
+- **macOS 最低版本 15.0**：`packaging/Info.plist` 的 `LSMinimumSystemVersion` 必须与 README 的系统要求及 .NET 10 / Tailwind v4 支持范围一致。
 
 ## 依赖与升级
 
 - 升级前先看 `dotnet list <project> package --outdated --highest-minor` 与 `pnpm outdated`。
 - **TypeScript 保持 6.0.x**：Volar/vue-tsc 的 peer 依赖要求 `<7`，升到 7 会导致 `vue-tsc` 崩溃。
 - **Microsoft.Extensions.FileProviders.Embedded 保持 10.0.x**：11.x 面向 net11.0；本项目是 net10.0。
-- **Tailwind CSS 保持 4.x**：入口 `src/assets/main.css` 使用 `@import "tailwindcss"` + `@theme`；`@tailwindcss/vite` 与 Vite 8 兼容。Tailwind v4 要求 Safari 16.4+，.NET 10 支持的 macOS 15+ 已满足。
+- **Tailwind CSS 保持 4.x**：入口 `src/assets/main.css` 使用 `@import "tailwindcss"` + `@theme`；`@tailwindcss/vite` 与 Vite 8 兼容。App 最低 macOS 15.0（`packaging/Info.plist`），满足 Tailwind v4 的 Safari 16.4+ 要求。
 - **Reka UI 保持 2.x**：只提供无头行为与 ARIA，不携带样式；`SelectItem` 的空字符串限制见上文。
+- **@lucide/vue 1.x / Animate.css 4.x**：图标按需导入；Animate.css 用于 Vue Transition，不用于 Reka 浮层的 `data-state` 动画。
 - xunit v4 依赖 MTP 模式；如果 `dotnet test` 报 MTP/VSTest 错误，检查 `global.json` 是否被删除。
 - 大版本升级单独提交，并在 PR/提交信息中说明兼容性取舍。
 
 ## 设计与 UI 技能路由
 
-本项目 UI 是 **Vue 3 + Tailwind CSS + Reka UI**，不是 React/shadcn。按任务显式选择技能：
+本项目 UI 是 **Vue 3 + Tailwind CSS + Reka UI**（Lucide 图标、Animate.css 过渡），不是 React/shadcn。按任务显式选择技能：
 
 | 任务 | 使用 | 禁止/避免 |
 |---|---|---|
@@ -164,6 +168,8 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
 - 不要改 CI 的六平台矩阵或版本来源而不更新对应校验脚本；`.app` 版本注入与 DMG 布局属于发布流程的一部分。
 - 不要重新引入 UnoCSS；样式统一走 Tailwind CSS。
 - 不要给 Reka UI `SelectItem` 传空字符串 `value`；空值状态通过 `Controls/Dropdown.vue` 的哨兵值处理。
+- 不要新增手写 SVG/图片图标（品牌与游戏图标除外），统一用 `@lucide/vue`。
+- 不要给 Reka 浮层套 Animate.css；页面过渡用 Animate.css，浮层保持 `data-state` 动画。
 - 不要引入 shadcn，或用 `ui-styling` 接管实现。
 
 ## 完成前检查清单
