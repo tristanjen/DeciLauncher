@@ -77,6 +77,7 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
 
 - **Windows**：初始窗口放到屏幕外（`-32000,-32000`），等前端首帧消息后再居中，避免 WebView2 首帧黑底；`WebViewArgumentsBuilder` 的 Chromium 参数**只能**在 Windows 传入。
 - **macOS/Linux**：窗口创建时直接居中显示。WebKit 在窗口不可见时会暂停 `requestAnimationFrame`，而前端在 `App.vue` 中等待双 rAF 后才发首条消息；把窗口放屏幕外会触发 15 秒看门狗。
+- **macOS/Linux 手动拖拽**：必须用 `window.SetLocation(...)`，**不要用** `MoveTo`。Photino 4.0.16 的 `MoveTo` 用 `OSDescription.Split(' ')[1]` 判断 macOS 版本，.NET 10 返回 `"macOS 15.8.1"`（Major=15），会误入 `MacOsVersion.Major < 23` 的旧系统坐标修正分支再减去工作区高度，窗口会瞬间飞出屏幕（拖拽时「消失」）。
 - **macOS 透明**：Photino 4.0.16 的 `SetTransparent` 在 macOS 是空实现。`Program.MacWindow.cs` 在窗口创建后通过 Objective-C 运行时设置 `NSWindow` 透明、`WKWebView.drawsBackground = NO`；`--opaque`/`DECILAUNCHER_OPAQUE=1` 时跳过。
 - **单实例**：Windows 命名 Mutex；macOS/Linux 使用 `launcher.lock`（`FileShare.None`；macOS 不调用 `FileStream.Lock`）。
 

@@ -156,8 +156,12 @@ partial class Program
                         // 累加到窗口追踪位置
                         DragX += dx;
                         DragY += dy;
-                        // 移动窗口到新位置（允许跨显示器）
-                        window.MoveTo((int)Math.Round(DragX), (int)Math.Round(DragY), true);
+                        // 移动窗口到新位置（允许跨显示器）。
+                        // 不能用 Photino 的 MoveTo：4.0.16 用 OSDescription.Split(' ')[1] 判断 macOS 版本，
+                        // .NET 10 返回 "macOS 15.8.1"（Major=15），会误入 "MacOsVersion.Major < 23" 的
+                        // 旧系统坐标修正分支，把 y 再减去工作区高度，窗口瞬间被移到屏幕外（表现为拖拽时消失）。
+                        // 直接设置 Location 绕过该分支，原生 SetPosition 已自行处理坐标换算。
+                        window.SetLocation(new Point((int)Math.Round(DragX), (int)Math.Round(DragY)));
                         return;
                     }
 
