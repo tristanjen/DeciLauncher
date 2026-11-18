@@ -11,6 +11,8 @@ import { launching, gameRunning, toast } from '../stores/store'
 import DefaultButton from '../components/Controls/DefaultButton.vue'
 import RadioItem from '../components/Controls/RadioItem.vue'
 import Card from '../components/Controls/Card.vue'
+// Reka UI 单选组：提供 roving tabindex、方向键切换与 ARIA 语义
+import { RadioGroupItem, RadioGroupRoot, type AcceptableValue } from 'reka-ui'
 // 国际化翻译
 import { t } from '../stores/locale'
 // 内置加载器 logo（官方品牌图标，许可见 loaders/README.md）
@@ -77,12 +79,12 @@ function pickGamePath() {
  * 选中游戏版本（不可取消，必须有一个条目被选中）。
  * 游戏启动或运行期间锁定：拒绝切换并提示原因
  */
-function toggleGame(id: string) {
+function onGameSelect(value: AcceptableValue) {
   if (switchLocked.value) {
     toast.value = t('games.switchLocked')
     return
   }
-  selectedGame.value = id
+  selectedGame.value = typeof value === 'string' ? value : String(value ?? '')
 }
 </script>
 
@@ -106,46 +108,49 @@ function toggleGame(id: string) {
     <!-- 游戏内容区：下拉弹入动画 -->
     <Transition name="content-drop" appear>
       <div v-if="!scanningGames" key="games" class="grow flex flex-col gap-3">
-        <!-- 原版分区卡片 -->
-        <Card v-if="vanillaGames.length > 0" class="flex flex-col gap-2">
-          <span class="text-xs text-[#333] font-medium">{{ t('games.vanilla') }}</span>
-          <div v-for="g in vanillaGames" :key="g.id"
-            class="flex items-center gap-2 cursor-pointer"
-            :class="switchLocked ? 'opacity-40 cursor-not-allowed' : ''"
-            @click="toggleGame(g.id)">
-            <RadioItem :selected="selectedGame === g.id" />
-            <img
-              class="w-8 h-8 shrink-0 rounded-sm"
-              :class="gameIcon(g.loaderIcon).pixelated ? 'image-pixelated' : ''"
-              :src="gameIcon(g.loaderIcon).src"
-              alt="" />
-            <div class="flex flex-col">
-              <span class="text-sm">{{ g.id }}</span>
-              <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }}</span>
-            </div>
-          </div>
-        </Card>
-        <!-- 模组分区分区卡片 -->
-        <Card v-if="moddedGames.length > 0" class="flex flex-col gap-2">
-          <span class="text-xs text-[#333] font-medium">{{ t('games.modded') }}</span>
-          <div v-for="g in moddedGames" :key="g.id"
-            class="flex items-center gap-2 cursor-pointer"
-            :class="switchLocked ? 'opacity-40 cursor-not-allowed' : ''"
-            @click="toggleGame(g.id)">
-            <RadioItem :selected="selectedGame === g.id" />
-            <img
-              class="w-8 h-8 shrink-0 rounded-sm"
-              :class="gameIcon(g.loaderIcon).pixelated ? 'image-pixelated' : ''"
-              :src="gameIcon(g.loaderIcon).src"
-              alt="" />
-            <div class="flex flex-col">
-              <span class="text-sm">{{ g.id }}</span>
-              <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }} / {{ g.loader }}</span>
-            </div>
-          </div>
-        </Card>
+        <RadioGroupRoot v-if="games.length > 0" :model-value="selectedGame" orientation="vertical"
+          class="flex grow flex-col gap-3" @update:model-value="onGameSelect">
+          <!-- 原版分区卡片 -->
+          <Card v-if="vanillaGames.length > 0" class="flex flex-col gap-2">
+            <span class="text-xs text-deci-text font-medium">{{ t('games.vanilla') }}</span>
+            <RadioGroupItem v-for="g in vanillaGames" :key="g.id" :value="g.id"
+              class="flex w-full items-center gap-2 rounded text-left transition duration-150
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/40"
+              :class="switchLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'">
+              <RadioItem :selected="selectedGame === g.id" />
+              <img
+                class="w-8 h-8 shrink-0 rounded-sm"
+                :class="gameIcon(g.loaderIcon).pixelated ? 'image-pixelated' : ''"
+                :src="gameIcon(g.loaderIcon).src"
+                alt="" />
+              <div class="flex flex-col">
+                <span class="text-sm">{{ g.id }}</span>
+                <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }}</span>
+              </div>
+            </RadioGroupItem>
+          </Card>
+          <!-- 模组分区分区卡片 -->
+          <Card v-if="moddedGames.length > 0" class="flex flex-col gap-2">
+            <span class="text-xs text-deci-text font-medium">{{ t('games.modded') }}</span>
+            <RadioGroupItem v-for="g in moddedGames" :key="g.id" :value="g.id"
+              class="flex w-full items-center gap-2 rounded text-left transition duration-150
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/40"
+              :class="switchLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'">
+              <RadioItem :selected="selectedGame === g.id" />
+              <img
+                class="w-8 h-8 shrink-0 rounded-sm"
+                :class="gameIcon(g.loaderIcon).pixelated ? 'image-pixelated' : ''"
+                :src="gameIcon(g.loaderIcon).src"
+                alt="" />
+              <div class="flex flex-col">
+                <span class="text-sm">{{ g.id }}</span>
+                <span class="text-xs text-gray-500">{{ t('games.minecraft', { version: g.mcVersion }) }} / {{ g.loader }}</span>
+              </div>
+            </RadioGroupItem>
+          </Card>
+        </RadioGroupRoot>
         <!-- 空列表提示 -->
-        <p v-if="games.length === 0" class="grow flex items-center justify-center text-2xl font-medium">
+        <p v-else class="grow flex items-center justify-center text-2xl font-medium">
           {{ t('games.noneFound') }}
         </p>
       </div>

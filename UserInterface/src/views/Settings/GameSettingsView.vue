@@ -63,17 +63,18 @@ function onDownloadSourceChange(value: string) {
     <Card class="flex flex-col gap-4">
       <!-- Java 运行时行 -->
       <div class="flex items-end gap-2">
-        <label class="flex flex-col gap-1 grow">
+        <div class="flex flex-col gap-1 grow">
           <span class="text-sm font-medium">{{ t('settings.javaRuntime') }}</span>
-          <Dropdown v-model="selectedJava" :options="dropdownOptions" :placeholder="t('settings.notScannedYet')" />
-        </label>
+          <Dropdown v-model="selectedJava" :options="dropdownOptions"
+            :placeholder="t('settings.notScannedYet')" :aria-label="t('settings.javaRuntime')" />
+        </div>
         <DefaultButton :loading="scanning" :loading-text="t('settings.scanning')" :disabled="scanning"
           @click="scanJava">
           {{ t('settings.scan') }}
         </DefaultButton>
       </div>
       <!-- 游戏内存行 -->
-      <label class="flex flex-col gap-1">
+      <div class="flex flex-col gap-1">
         <span class="text-sm font-medium">{{ t('settings.instanceMemory') }}</span>
         <div class="flex items-center gap-3">
           <RangeSlider v-model="maxMemory" />
@@ -82,13 +83,14 @@ function onDownloadSourceChange(value: string) {
               t('settings.mb') }}
           </span>
         </div>
-      </label>
+      </div>
       <!-- 下载源行 -->
-      <label class="flex flex-col gap-1 grow">
+      <div class="flex flex-col gap-1 grow">
         <span class="text-sm font-medium">{{ t('settings.downloadSource') }}</span>
         <Dropdown :model-value="downloadSource" :options="downloadSourceOptions"
-          :placeholder="t('settings.downloadSource')" @update:model-value="onDownloadSourceChange" />
-      </label>
+          :placeholder="t('settings.downloadSource')" :aria-label="t('settings.downloadSource')"
+          @update:model-value="onDownloadSourceChange" />
+      </div>
     </Card>
   </div>
 </template>

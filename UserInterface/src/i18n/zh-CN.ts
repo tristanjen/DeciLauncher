@@ -6,9 +6,15 @@ export const zhCN: Record<string, string> = {
   'common.refreshing': '刷新中...',
   'common.ok': '我知道了',
   'common.underConstruction': '开发中...',
+  'common.notice': '提示',
+  'common.dialog': '对话框',
+  'common.notification': '通知',
+  'common.notifications': '通知',
 
   // 标题栏
   'titlebar.localStorageReset': 'localStorage 重置成功',
+  'titlebar.close': '关闭',
+  'titlebar.minimize': '最小化',
 
   // 导航
   'nav.home': '主页',
@@ -47,6 +53,8 @@ export const zhCN: Record<string, string> = {
   'accounts.typeMicrosoft': '正版账户',
   'accounts.typeYggdrasil': '第三方账户',
   'accounts.copied': '已复制到剪贴板',
+  'accounts.copyUuid': '复制 UUID',
+  'accounts.delete': '删除账户',
 
   // 设置页
   'settings.instanceSettings': '游戏设置',

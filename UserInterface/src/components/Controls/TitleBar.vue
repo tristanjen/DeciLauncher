@@ -51,10 +51,10 @@ function handleLogoClick() {
 </script>
 
 <template>
-  <!-- 标题栏容器：212.5x12 单元（实际尺寸由 UnoCSS spacing 倍数定义） -->
-  <div class="border-b border-[#52C41A]/25 shadow-[0_0_4px_#52C41A3F] relative w-212.5 h-12 bg-white/50 rounded-t-lg inline-flex flex-row items-center justify-between shrink-0" @mousedown="onMouseDown">
+  <!-- 标题栏容器：212.5x12 单元（实际尺寸由 Tailwind spacing 倍数定义） -->
+  <div class="border-b border-deci-primary/25 shadow-deci relative w-212.5 h-12 bg-white/50 rounded-t-lg inline-flex flex-row items-center justify-between shrink-0" @mousedown="onMouseDown">
     <!-- 应用 Logo / 标题文字（SVG 图形） -->
-    <img class="ml-4" src="../../assets/images/title.svg" alt="Title" @click="handleLogoClick" @mousedown.stop>
+    <img class="ml-4" src="../../assets/images/title.svg" alt="Deci Launcher" @click="handleLogoClick" @mousedown.stop>
 
     <!-- 导航链接：用 custom+v-slot 渲染为 <span> 规避 WebView2 状态栏 URL 显示 -->
     <div class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center gap-2" @mousedown.stop>
@@ -68,12 +68,12 @@ function handleLogoClick() {
     <!-- 右侧按钮组：关闭 + 最小化 -->
     <div class="mr-2 flex flex-row-reverse gap-2">
       <!-- 关闭按钮：绿色悬停 + 深绿按下效果 -->
-      <IconButton variant="titlebar" @click="closeWindow">
-        <img class="pointer-events-none" src="../../assets/images/close.svg" alt="Close">
+      <IconButton variant="titlebar" :label="t('titlebar.close')" @click="closeWindow">
+        <img class="pointer-events-none" src="../../assets/images/close.svg" alt="">
       </IconButton>
       <!-- 最小化按钮：绿色悬停 + 深绿按下效果 -->
-      <IconButton variant="titlebar" @click="minimizeWindow">
-        <img class="pointer-events-none" src="../../assets/images/minimize.svg" alt="Minimize">
+      <IconButton variant="titlebar" :label="t('titlebar.minimize')" @click="minimizeWindow">
+        <img class="pointer-events-none" src="../../assets/images/minimize.svg" alt="">
       </IconButton>
     </div>
   </div>

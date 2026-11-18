@@ -1,37 +1,100 @@
-/* 全局自定义样式 — body 基础设置 + 滚动条（UnoCSS 样式由 main.ts 导入 virtual:uno.css） */
+/* Tailwind CSS v4 入口 + 全局设计 token + 基础样式 */
 
-/* body 全局基础样式（UnoCSS wind4 preflight 已覆盖 margin/padding/font-family 等） */
-body {
+@import "tailwindcss";
+
+/* 设计 token：绿色极简主题的唯一来源，组件与视图只使用语义类名 */
+@theme {
+  /* 品牌绿 */
+  --color-deci-border: #B7EB8F;
+  --color-deci-primary: #52C41A;
+  --color-deci-primary-hover: #73D13D;
+  --color-deci-primary-active: #389E0D;
+  --color-deci-soft: #D9F7BE;
+  --color-deci-hover: #95DE64;
+  --color-deci-bg-start: #F4FFB8;
+  --color-deci-bg-end: #D9F7BE;
+  --color-deci-chip: #73D13D26;
+
+  /* 文本 */
+  --color-deci-text: #333333;
+
+  /* 危险操作 */
+  --color-deci-danger: #F5222D;
+  --color-deci-danger-hover: #FF4D4F;
+  --color-deci-danger-active: #CF1322;
+  --color-deci-danger-border: #FFA39E;
+
+  /* 阴影 */
+  --shadow-deci: 0 0 4px #52C41A3F;
+  --shadow-deci-hover: 0 0 8px #52C41A3F;
+  --shadow-deci-window: 0 0 10px #0000003F;
+
+  /* 动画（Reka UI 通过 data-state 触发） */
+  --animate-deci-overlay-in: deci-overlay-in 0.15s ease-out;
+  --animate-deci-content-in: deci-content-in 0.15s ease-out;
+  --animate-deci-content-out: deci-content-out 0.1s ease-out;
+  --animate-deci-dropdown-in: deci-dropdown-in 0.15s ease-in-out;
+  --animate-deci-toast-in: deci-toast-in 0.2s ease-out;
+}
+
+/* 使用独立 transform 属性（translate/scale），避免覆盖 Reka UI 的定位 transform */
+@keyframes deci-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes deci-content-in {
+  from { opacity: 0; scale: 0.95; }
+  to { opacity: 1; scale: 1; }
+}
+
+@keyframes deci-content-out {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: 0.95; }
+}
+
+@keyframes deci-dropdown-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes deci-toast-in {
+  from { opacity: 0; translate: 32px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@layer base {
   /* 透明背景：配合 Photino 的 SetTransparent(true) 实现毛玻璃/透明窗口效果 */
-  background: transparent;
-  /* 禁止文本选择：桌面应用 UI 通常不需要文本选择功能 */
-  user-select: none;
-  color: #333333;
-}
+  body {
+    background: transparent;
+    /* 禁止文本选择：桌面应用 UI 通常不需要文本选择功能 */
+    user-select: none;
+    color: var(--color-deci-text);
+  }
 
-/* 不透明回退模式（后端 --opaque / DECILAUNCHER_OPAQUE=1）：
-   窗口本身不透明，外层铺不透明底色（取卡片渐变起点色），避免方角窗口露出透明区域 */
-html[data-opaque='1'] body {
-  background: #f4ffb8;
-}
+  /* 不透明回退模式（后端 --opaque / DECILAUNCHER_OPAQUE=1）：
+     窗口本身不透明，外层铺不透明底色（取卡片渐变起点色），避免方角窗口露出透明区域 */
+  html[data-opaque='1'] body {
+    background: var(--color-deci-bg-start);
+  }
 
-/* 自定义滚动条样式（WebKit/Chromium 兼容，匹配绿色主题，始终显示） */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+  /* 自定义滚动条样式（WebKit/Chromium 兼容，匹配绿色主题，始终显示） */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #b7eb8f80;
-  border-radius: 8px;
-  -webkit-transition: background 0.15s ease-out;
-  transition: background 0.15s ease-out;
-}
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-deci-border) 50%, transparent);
+    border-radius: 8px;
+    transition: background 0.15s ease-out;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #52c41a50;
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--color-deci-primary) 31%, transparent);
+  }
 }

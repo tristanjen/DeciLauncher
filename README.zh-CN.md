@@ -20,7 +20,7 @@
   <a href="README.md">English</a> | <strong>简体中文</strong>
 </p>
 
-Deci Launcher 是一个轻量、跨平台的 Minecraft 启动器，使用 **C#/.NET 10 + Photino.NET** 构建后端，**Vue 3 + UnoCSS** 构建界面。它专注于「扫描本机已安装的游戏版本 → 选择 Java → 启动游戏」这条核心路径，提供原生透明窗口、离线账户、崩溃分析和完全本地的运行方式。
+Deci Launcher 是一个轻量、跨平台的 Minecraft 启动器，使用 **C#/.NET 10 + Photino.NET** 构建后端，**Vue 3 + Tailwind CSS + Reka UI** 构建界面。它专注于「扫描本机已安装的游戏版本 → 选择 Java → 启动游戏」这条核心路径，提供原生透明窗口、离线账户、崩溃分析和完全本地的运行方式。
 
 > 当前处于 **Beta** 阶段，版本号见 [`DeciLauncher.csproj`](DeciLauncher.csproj) 的 `<Version>`。
 
@@ -48,7 +48,7 @@ Deci Launcher 是一个轻量、跨平台的 Minecraft 启动器，使用 **C#/.
 ### 界面与体验
 
 - **原生透明窗口** — 无边框自定义标题栏，Windows / macOS 上透明背景与圆角卡片；`--opaque` 可回退为不透明窗口。
-- **绿色极简主题** — 统一的 UnoCSS 设计语言、过渡动画和轻量布局。
+- **绿色极简主题** — 统一的 Tailwind CSS 设计语言与 `deci-*` 语义 token、过渡动画和轻量布局。
 - **中英文界面** — 内置 `zh-CN` / `en-US`，可在设置中切换。
 - **单实例保护** — 重复启动会提示「已经在运行」并退出，避免两个实例同时操作同一 `.minecraft`。
 - **窗口拖拽 / 最小化 / 关闭** — 均由前端标题栏通过消息桥驱动。
@@ -246,7 +246,7 @@ macOS 的 `.app` 由 CI 组装 `Info.plist`、`AppIcon.icns` 并注入版本；D
 |------|------|
 | `Program*.cs` | 后端入口与 partial class 拆分（启动、窗口、账户、Java、游戏扫描、崩溃分析等） |
 | `Launching/` | 纯函数启动组件（参数模板、native 匹配、路径映射、WebView 参数等） |
-| `UserInterface/` | Vue 3 + UnoCSS 前端（Vite、Vitest） |
+| `UserInterface/` | Vue 3 + Tailwind CSS + Reka UI 前端（Vite、Vitest） |
 | `DeciLauncher.Tests/` | xUnit v4 测试 |
 | `packaging/` | 图标、Info.plist、DMG 打包脚本 |
 | `.github/workflows/ci.yml` | 前端/后端/六平台发布与打包 |
@@ -267,7 +267,7 @@ macOS 的 `.app` 由 CI 组装 `Info.plist`、`AppIcon.icns` 并注入版本；D
 - `dotnet test -c Release` 与 `pnpm test` 通过；
 - `pnpm type-check` 与 `pnpm build` 通过；
 - 用户可见文案同时更新 `src/i18n/zh-CN.ts` 与 `en-US.ts`；
-- 没有引入 Tailwind / shadcn，样式继续使用 UnoCSS 与现有设计变量。
+- 没有引入 shadcn，样式使用 Tailwind CSS 与 `src/assets/main.css` 中的 `deci-*` 设计 token。
 
 ## 使用的开源项目
 
@@ -279,7 +279,8 @@ macOS 的 `.app` 由 CI 组装 `Info.plist`、`AppIcon.icns` 并注入版本；D
 | [MinecraftLaunch](https://github.com/Lunova-Studio/MinecraftLaunch) | Minecraft 启动核心 | MIT |
 | [Vue](https://github.com/vuejs/core) | 前端框架 | MIT |
 | [Vite](https://github.com/vitejs/vite) | 前端构建工具 | MIT |
-| [UnoCSS](https://github.com/unocss/unocss) | 原子化 CSS 引擎 | MIT |
+| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | 原子化 CSS 框架 | MIT |
+| [Reka UI](https://github.com/unovue/reka-ui) | 无头可访问 UI 原语 | MIT |
 | [TypeScript](https://github.com/microsoft/TypeScript) | 类型化 JavaScript | Apache-2.0 |
 | [xUnit](https://github.com/xunit/xunit) | 测试框架 | Apache-2.0 |
 | [pnpm](https://github.com/pnpm/pnpm) | 包管理器 | MIT |

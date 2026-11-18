@@ -20,7 +20,7 @@
   <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-Deci Launcher is a lightweight, cross-platform Minecraft launcher built with **C#/.NET 10 + Photino.NET** on the backend and **Vue 3 + UnoCSS** on the frontend. It focuses on the core path — scan installed game versions, pick a Java runtime, launch the game — and adds native transparent windows, offline accounts, crash analysis, and a fully local, telemetry-free experience.
+Deci Launcher is a lightweight, cross-platform Minecraft launcher built with **C#/.NET 10 + Photino.NET** on the backend and **Vue 3 + Tailwind CSS + Reka UI** on the frontend. It focuses on the core path — scan installed game versions, pick a Java runtime, launch the game — and adds native transparent windows, offline accounts, crash analysis, and a fully local, telemetry-free experience.
 
 > **Beta**: the current version is defined by `<Version>` in [`DeciLauncher.csproj`](DeciLauncher.csproj).
 
@@ -48,7 +48,7 @@ Deci Launcher is a lightweight, cross-platform Minecraft launcher built with **C
 ### UI and experience
 
 - **Native transparent window** — chromeless custom title bar with a transparent background and rounded card on Windows and macOS; use `--opaque` to fall back to an opaque window.
-- **Minimal green theme** — a consistent UnoCSS design language, transitions, and compact layouts.
+- **Minimal green theme** — a consistent Tailwind CSS design language with semantic `deci-*` tokens, transitions, and compact layouts.
 - **Chinese and English UI** — built-in `zh-CN` / `en-US`, switchable in Settings.
 - **Single instance** — a second launch reports "already running" and exits, preventing two instances from touching the same `.minecraft`.
 - **Window dragging / minimizing / closing** — driven by the custom title bar through the native message bridge.
@@ -247,7 +247,7 @@ The macOS `.app` is assembled by CI from `Info.plist` and `AppIcon.icns`, with t
 |------|-------------|
 | `Program*.cs` | Backend entry point and partial classes (startup, window, accounts, Java, game scanning, crash analysis, …) |
 | `Launching/` | Pure launch helpers (argument templates, native matching, path mapping, WebView arguments, …) |
-| `UserInterface/` | Vue 3 + UnoCSS frontend (Vite, Vitest) |
+| `UserInterface/` | Vue 3 + Tailwind CSS + Reka UI frontend (Vite, Vitest) |
 | `DeciLauncher.Tests/` | xUnit v4 tests |
 | `packaging/` | Icons, `Info.plist`, and the DMG packaging script |
 | `.github/workflows/ci.yml` | Frontend/backend builds, six-platform publishing, packaging |
@@ -268,7 +268,7 @@ Before submitting, make sure:
 - `dotnet test -c Release` and `pnpm test` pass;
 - `pnpm type-check` and `pnpm build` pass;
 - user-visible strings are updated in both `src/i18n/zh-CN.ts` and `en-US.ts`;
-- no Tailwind / shadcn is introduced; styles continue to use UnoCSS and the existing design tokens.
+- no shadcn is introduced; styles use Tailwind CSS and the `deci-*` tokens in `src/assets/main.css`.
 
 ## Open source projects
 
@@ -280,7 +280,8 @@ Before submitting, make sure:
 | [MinecraftLaunch](https://github.com/Lunova-Studio/MinecraftLaunch) | Minecraft launch core | MIT |
 | [Vue](https://github.com/vuejs/core) | Frontend framework | MIT |
 | [Vite](https://github.com/vitejs/vite) | Frontend build tool | MIT |
-| [UnoCSS](https://github.com/unocss/unocss) | Atomic CSS engine | MIT |
+| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | Utility-first CSS framework | MIT |
+| [Reka UI](https://github.com/unovue/reka-ui) | Headless accessible UI primitives | MIT |
 | [TypeScript](https://github.com/microsoft/TypeScript) | Typed JavaScript | Apache-2.0 |
 | [xUnit](https://github.com/xunit/xunit) | Test framework | Apache-2.0 |
 | [pnpm](https://github.com/pnpm/pnpm) | Package manager | MIT |

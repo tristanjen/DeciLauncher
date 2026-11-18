@@ -114,7 +114,7 @@ onMounted(async () => {
 <template>
   <div class="w-218.5 h-131 flex justify-center items-center">
     <div
-      class="flex flex-col w-212.5 h-125 bg-linear-to-br from-[#F4FFB8] to-[#D9F7BE] rounded-lg shadow-[0_0_10px_#0000003F] overflow-hidden relative"
+      class="flex flex-col w-212.5 h-125 bg-linear-to-br from-deci-bg-start to-deci-bg-end rounded-lg shadow-deci-window overflow-hidden relative"
       id="main-card">
       <TitleBar />
       <!-- vue-router 5：<router-view> 不能直接放在 <transition> 内，

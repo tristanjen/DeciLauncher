@@ -1,5 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
+import {
+  SelectContent,
+  SelectIcon,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectPortal,
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
+  SelectViewport,
+  type AcceptableValue
+} from 'reka-ui'
 
 export interface DropdownOption {
   label: string
@@ -11,84 +24,74 @@ const props = defineProps<{
   modelValue: string
   options: DropdownOption[]
   placeholder?: string
+  /** 触发按钮的无障碍名称（可见标签在外部，需显式关联） */
+  ariaLabel?: string
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-// 下拉列表是否展开
-const open = ref(false)
-// 触发按钮 DOM 引用（用于关闭面板的点击外部检测）
-const triggerRef = ref<HTMLElement | null>(null)
-// 下拉面板 DOM 引用
-const panelRef = ref<HTMLElement | null>(null)
+// Reka UI 禁止 SelectItem 使用空字符串 value（空值用于清空选择并显示 placeholder）。
+// 业务上用 value: '' 表示“扫描中/未找到”这类不可选状态，这里统一映射为哨兵值：
+// 触发器仍显示该状态文案（effectivePlaceholder），选择时再映射回 ''。
+const EMPTY_VALUE = '__deci_empty__'
 
-function toggle() {
-  open.value = !open.value
-}
+const items = computed(() =>
+  props.options.map(o => (o.value === '' ? { ...o, value: EMPTY_VALUE } : o))
+)
 
-function select(option: DropdownOption) {
-  if (option.disabled) return
-  emit('update:modelValue', option.value)
-  open.value = false
-}
+const effectivePlaceholder = computed(() =>
+  props.options.find(o => o.value === '')?.label ?? props.placeholder ?? ''
+)
 
-function onDocumentClick(e: MouseEvent) {
-  const target = e.target as Node
-  if (triggerRef.value?.contains(target) || panelRef.value?.contains(target)) return
-  open.value = false
-}
+const selectValue = computed(() => (props.modelValue === '' ? undefined : props.modelValue))
 
-onMounted(() => document.addEventListener('click', onDocumentClick))
-onUnmounted(() => document.removeEventListener('click', onDocumentClick))
-
-const selectedLabel = () => {
-  const selected = props.options.find(o => o.value === props.modelValue)
-  if (selected) return selected.label
-  return props.placeholder ?? ''
+function onChange(value: AcceptableValue) {
+  const next = typeof value === 'string' ? value : String(value ?? '')
+  emit('update:modelValue', next === EMPTY_VALUE ? '' : next)
 }
 </script>
 
 <template>
-  <div class="relative">
+  <SelectRoot :model-value="selectValue" @update:model-value="onChange">
     <!-- 触发按钮 -->
-    <div ref="triggerRef" class="h-8 rounded-lg border border-[#B7EB8F] bg-white/50 px-2 text-sm flex items-center
+    <SelectTrigger
+      :aria-label="ariaLabel"
+      class="group h-8 w-full rounded-lg border border-deci-border bg-white/50 px-2 text-sm flex items-center
              cursor-pointer select-none transition ease-out duration-150
-             hover:border-[#95DE64]" @click="toggle">
-      <span class="grow truncate">{{ selectedLabel() }}</span>
-      <svg class="ml-1 size-3 transition duration-150 shrink-0" :class="open && 'rotate-180'" viewBox="0 0 12 12">
-        <path d="M3 5L6 8L9 5" stroke="#333" stroke-width="1.5" fill="none" stroke-linecap="round"
-          stroke-linejoin="round" />
-      </svg>
-    </div>
-    <!-- 下拉面板：展开/收起动画 -->
-    <Transition name="dropdown">
-      <div v-if="open" ref="panelRef" class="absolute z-10 mt-1 w-full rounded-lg border border-[#B7EB8F] bg-white/90
-               shadow-lg text-sm overflow-hidden">
-        <div v-for="o in options" :key="o.value"
-          class="px-2 py-1 cursor-pointer transition ease-in-out duration-150 truncate" :class="o.disabled
-            ? 'text-gray-400'
-            : o.value === modelValue
-              ? 'bg-[#D9F7BE] text-[#389E0D]'
-              : 'hover:bg-[#B7EB8F]'" @click="select(o)">
-          {{ o.label }}
-        </div>
-      </div>
-    </Transition>
-  </div>
+             hover:border-deci-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/25">
+      <SelectValue :placeholder="effectivePlaceholder" class="grow truncate text-left" />
+      <SelectIcon>
+        <svg class="ml-1 size-3 shrink-0 transition duration-150 group-data-[state=open]:rotate-180"
+          viewBox="0 0 12 12">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </SelectIcon>
+    </SelectTrigger>
+    <!-- 下拉面板：popper 定位，默认挂载到 body 避免被卡片 overflow 裁剪 -->
+    <SelectPortal>
+      <SelectContent position="popper" :side-offset="4"
+        class="z-50 max-h-72 min-w-[var(--reka-select-trigger-width)] overflow-hidden rounded-lg border border-deci-border
+               bg-white/95 shadow-lg text-sm data-[state=open]:animate-deci-dropdown-in">
+        <SelectViewport class="overflow-y-auto p-1">
+          <SelectItem v-for="o in items" :key="o.value" :value="o.value" :disabled="o.disabled"
+            class="relative flex w-full items-center rounded px-2 py-1 pr-6 text-left cursor-pointer select-none
+                   outline-none transition ease-in-out duration-150
+                   data-[disabled]:cursor-not-allowed data-[disabled]:text-gray-400
+                   data-[highlighted]:bg-deci-border
+                   data-[state=checked]:bg-deci-soft data-[state=checked]:text-deci-primary-active">
+            <SelectItemText class="truncate">{{ o.label }}</SelectItemText>
+            <SelectItemIndicator class="absolute right-2 inline-flex items-center">
+              <svg class="size-3" viewBox="0 0 12 12">
+                <path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="1.5" fill="none"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </SelectItemIndicator>
+          </SelectItem>
+        </SelectViewport>
+      </SelectContent>
+    </SelectPortal>
+  </SelectRoot>
 </template>
-
-<style scoped>
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
-  transform-origin: top;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: scaleY(0.95) translateY(-4px);
-}
-</style>

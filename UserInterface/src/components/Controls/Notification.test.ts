@@ -17,10 +17,18 @@ beforeEach(() => {
 const mountNotification = () =>
   mount(Notification, {
     global: {
-      // Teleport to="#main-card" 目标在 App 布局中，单测用 stub 内联渲染
-      stubs: { teleport: true },
+      // Reka 的 Teleport 包装层在单测中替换为内联渲染；
+      // 默认的 teleport stub 不渲染插槽，必须显式给出模板
+      stubs: { teleport: { template: '<div><slot /></div>' } },
     },
   })
+
+// Reka UI 的 Presence 在 present 变化后先 await nextTick 再派发挂载/卸载，
+// 因此断言前需要两个 tick 才能看到内容出现或消失
+const settle = async () => {
+  await nextTick()
+  await nextTick()
+}
 
 describe('Notification 组件', () => {
   it('notification 为 null 时隐藏', () => {
@@ -33,7 +41,7 @@ describe('Notification 组件', () => {
   it('设置通知后显示消息内容', async () => {
     const w = mountNotification()
     notification.value = '游戏启动失败'
-    await nextTick()
+    await settle()
     expect(w.text()).toContain('游戏启动失败')
     w.unmount()
   })
@@ -43,11 +51,11 @@ describe('Notification 组件', () => {
     notification.value = 'msg'
 
     locale.value = 'zh-CN'
-    await nextTick()
+    await settle()
     expect(w.text()).toContain('我知道了')
 
     locale.value = 'en-US'
-    await nextTick()
+    await settle()
     expect(w.text()).toContain('Got it')
     w.unmount()
   })
@@ -55,7 +63,7 @@ describe('Notification 组件', () => {
   it('点击确认按钮清除通知并复位显隐', async () => {
     const w = mountNotification()
     notification.value = '待清除的消息'
-    await nextTick()
+    await settle()
 
     // 找到 footer 中的确认按钮（含当前语言的文案）
     const btn = w.findAll('button').find(b => b.text() !== '')
@@ -63,7 +71,7 @@ describe('Notification 组件', () => {
     await btn!.trigger('click')
 
     expect(notification.value).toBeNull()
-    await nextTick()
+    await settle()
     expect(w.text()).not.toContain('待清除的消息')
     w.unmount()
   })

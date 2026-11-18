@@ -7,8 +7,8 @@ withDefaults(defineProps<{
   size: 'nav'
 })
 
-const linkClass = 'transition ease-out duration-150 hover:bg-[#B7EB8F] inline-flex items-center justify-center align-middle text-sm rounded-lg'
-const activeClass = 'bg-[#D9F7BE] !text-[#389E0D] font-medium'
+const linkClass = 'transition ease-out duration-150 hover:bg-deci-border inline-flex items-center justify-center align-middle text-sm rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/40'
+const activeClass = 'bg-deci-soft text-deci-primary-active! font-medium'
 </script>
 
 <template>
@@ -16,10 +16,14 @@ const activeClass = 'bg-[#D9F7BE] !text-[#389E0D] font-medium'
     <!-- 侧边栏模式：带左侧激活指示条 -->
     <div v-if="size === 'sidebar'" class="relative flex items-center active:scale-95 transition ease-out duration-150">
       <div v-if="isActive"
-        class="absolute left-0 w-1 h-5 rounded-full bg-[#52C41A] transition ease-in-out duration-150" />
-      <span @click="navigate" :class="[linkClass, 'w-44 h-9', isActive && activeClass]">{{ label }}</span>
+        class="absolute left-0 w-1 h-5 rounded-full bg-deci-primary transition ease-in-out duration-150" />
+      <span @click="navigate()" @keydown.enter="navigate()" @keydown.space.prevent="navigate()"
+        role="link" tabindex="0" :aria-current="isActive ? 'page' : undefined"
+        :class="[linkClass, 'w-44 h-9', isActive && activeClass]">{{ label }}</span>
     </div>
     <!-- 标题栏模式：纯文本链接 -->
-    <span v-else @click="navigate" :class="[linkClass, 'w-18 h-8 active:scale-95', isActive && activeClass]">{{ label }}</span>
+    <span v-else @click="navigate()" @keydown.enter="navigate()" @keydown.space.prevent="navigate()"
+      role="link" tabindex="0" :aria-current="isActive ? 'page' : undefined"
+      :class="[linkClass, 'w-18 h-8 active:scale-95', isActive && activeClass]">{{ label }}</span>
   </RouterLink>
 </template>

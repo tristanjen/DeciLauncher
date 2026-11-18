@@ -5,10 +5,11 @@ defineProps<{
 </script>
 
 <template>
-  <svg class="size-4 shrink-0" viewBox="0 0 12 12">
-    <circle cx="6" cy="6" r="5" :fill="selected ? '#52C41A' : 'none'"
-      stroke="#B7EB8F" stroke-width="1.5"/>
-    <circle v-if="selected" class="radio-dot" cx="6" cy="6" r="2" fill="#fff"/>
+  <!-- 纯视觉指示器；交互语义由外层 Reka UI RadioGroupItem 提供 -->
+  <svg class="size-4 shrink-0" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+    <circle cx="6" cy="6" r="5" :class="selected ? 'fill-deci-primary' : 'fill-none'"
+      class="stroke-deci-border" stroke-width="1.5"/>
+    <circle v-if="selected" class="radio-dot fill-white" cx="6" cy="6" r="2" />
   </svg>
 </template>
 

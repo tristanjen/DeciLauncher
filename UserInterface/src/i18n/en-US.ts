@@ -6,9 +6,15 @@ export const enUS: Record<string, string> = {
   'common.refreshing': 'Refreshing...',
   'common.ok': 'Got it',
   'common.underConstruction': 'Under construction...',
+  'common.notice': 'Notice',
+  'common.dialog': 'Dialog',
+  'common.notification': 'Notification',
+  'common.notifications': 'Notifications',
 
   // Title bar
   'titlebar.localStorageReset': 'localStorage reset successfully',
+  'titlebar.close': 'Close',
+  'titlebar.minimize': 'Minimize',
 
   // Nav
   'nav.home': 'Home',
@@ -47,6 +53,8 @@ export const enUS: Record<string, string> = {
   'accounts.typeMicrosoft': 'Microsoft',
   'accounts.typeYggdrasil': 'Third-party',
   'accounts.copied': 'Copied to clipboard',
+  'accounts.copyUuid': 'Copy UUID',
+  'accounts.delete': 'Delete account',
 
   // Settings
   'settings.instanceSettings': 'Game settings',

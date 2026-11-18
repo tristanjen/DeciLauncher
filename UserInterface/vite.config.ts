@@ -4,8 +4,8 @@
 import { defineConfig } from 'vite'
 // 导入 Vue SFC 编译插件 (.vue 单文件组件)
 import vue from '@vitejs/plugin-vue'
-// 导入 UnoCSS Vite 插件
-import UnoCSS from 'unocss/vite'
+// 导入 Tailwind CSS v4 的 Vite 插件（按需扫描模板并生成工具类）
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   // 构建插件列表
@@ -13,7 +13,7 @@ export default defineConfig({
     // 编译 .vue 单文件组件
     vue(),
     // 扫描模板/脚本中的 class 并按需生成 CSS
-    UnoCSS(),
+    tailwindcss(),
   ],
   // 生产构建配置
   build: {

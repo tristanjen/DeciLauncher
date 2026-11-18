@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // Vue 响应式
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+// Reka UI 单选组：为账户列表提供键盘导航与 ARIA 语义
+import { RadioGroupItem, RadioGroupRoot, type AcceptableValue } from 'reka-ui'
 // 前端 ↔ C# 后端消息桥
 import { sendNative } from '../native'
 // 全局共享状态（账户列表）
@@ -12,7 +14,6 @@ import PrimaryButton from '../components/Controls/PrimaryButton.vue'
 import DefaultButton from '../components/Controls/DefaultButton.vue'
 import Modal from '../components/Controls/Modal.vue'
 import RadioItem from '../components/Controls/RadioItem.vue'
-import Card from '../components/Controls/Card.vue'
 import TextInput from '../components/Controls/TextInput.vue'
 import IconButton from '../components/Controls/IconButton.vue'
 // 账户头像（Steve，对所有账户类型统一展示）
@@ -22,6 +23,11 @@ import steveAvatar from '../assets/images/steve.png'
 const newName = ref('')
 // 创建离线账户弹窗显隐
 const showCreateModal = ref(false)
+
+// 弹窗通过 Esc 关闭时同样清空输入（取消/创建按钮已有各自清理）
+watch(showCreateModal, (open) => {
+  if (!open) newName.value = ''
+})
 
 /**
  * 向 C# 后端发起离线账户创建
@@ -52,10 +58,10 @@ function deleteAccount(uuid: string) {
 }
 
 /**
- * 切换账户选中状态（再次点击取消）
+ * 切换账户选中状态（RadioGroup 受控更新）
  */
-function toggleAccount(uuid: string) {
-  selectedAccount.value = uuid
+function onAccountSelect(value: AcceptableValue) {
+  selectedAccount.value = typeof value === 'string' ? value : String(value ?? '')
 }
 
 /**
@@ -94,7 +100,7 @@ function typeLabel(type: string): string {
 function typeColor(type: string): string {
   switch (type) {
     case 'offline': return 'text-gray-500'
-    case 'microsoft': return 'text-[#52C41A]'
+    case 'microsoft': return 'text-deci-primary'
     case 'yggdrasil': return 'text-blue-500'
     default: return 'text-gray-700'
   }
@@ -122,35 +128,43 @@ function typeColor(type: string): string {
     <!-- 账户内容区：下拉弹入动画 -->
     <Transition name="content-drop" appear>
       <div v-if="!accountBusy" key="accounts" class="grow flex flex-col gap-2">
-        <!-- 账户列表 -->
-        <Card v-for="a in accounts" :key="a.uuid" padding="px-3 py-2" clickable class="flex gap-2 items-center"
-          @click="toggleAccount(a.uuid)">
-          <!-- 单选圆 -->
-          <RadioItem :selected="selectedAccount === a.uuid" />
-          <!-- Steve 头像 -->
-          <img class="w-8 h-8 shrink-0 image-pixelated shadow rounded-sm" :src="steveAvatar" alt="" />
-          <div class="flex flex-col">
-            <!-- 用户名 -->
-            <span class="text-sm">{{ a.username }}</span>
-            <!-- 账户类型标签 -->
-            <span class="text-xs" :class="typeColor(a.type)">{{ typeLabel(a.type) }}</span>
-          </div>
-          <!-- 复制 UUID 按钮 -->
-          <IconButton class="ml-auto" variant="list" @click="copyUuid(a.uuid)">
-            <svg class="size-3" viewBox="0 0 12 12">
-              <rect x="3" y="2" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.2" fill="none" />
-              <path d="M2 4V11H8" stroke="currentColor" stroke-width="1.2" fill="none" />
-            </svg>
-          </IconButton>
-          <!-- 删除按钮（推到最右） -->
-          <IconButton variant="list" color="red" @click="deleteAccount(a.uuid)">
-            <svg class="size-3" viewBox="0 0 12 12">
-              <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-          </IconButton>
-        </Card>
+        <!-- 账户列表：Reka RadioGroup（as="div" 允许行内嵌套复制/删除按钮） -->
+        <RadioGroupRoot v-if="accounts.length > 0" :model-value="selectedAccount" orientation="vertical"
+          class="flex grow flex-col gap-2" @update:model-value="onAccountSelect">
+          <RadioGroupItem v-for="a in accounts" :key="a.uuid" :value="a.uuid" as="div"
+            class="group flex w-full cursor-pointer items-center gap-2 rounded-lg border border-transparent
+                   bg-white/25 px-3 py-2 text-left shadow-deci transition ease-out duration-150
+                   hover:bg-white/50 hover:border-deci-primary/25
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/40">
+            <!-- 单选圆 -->
+            <RadioItem :selected="selectedAccount === a.uuid" />
+            <!-- Steve 头像 -->
+            <img class="w-8 h-8 shrink-0 image-pixelated shadow rounded-sm" :src="steveAvatar" alt="" />
+            <div class="flex flex-col">
+              <!-- 用户名 -->
+              <span class="text-sm">{{ a.username }}</span>
+              <!-- 账户类型标签 -->
+              <span class="text-xs" :class="typeColor(a.type)">{{ typeLabel(a.type) }}</span>
+            </div>
+            <!-- 复制 UUID 按钮 -->
+            <IconButton class="ml-auto" variant="list" :label="t('accounts.copyUuid')"
+              @click="copyUuid(a.uuid)" @keydown.stop>
+              <svg class="size-3" viewBox="0 0 12 12">
+                <rect x="3" y="2" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.2" fill="none" />
+                <path d="M2 4V11H8" stroke="currentColor" stroke-width="1.2" fill="none" />
+              </svg>
+            </IconButton>
+            <!-- 删除按钮（推到最右） -->
+            <IconButton variant="list" color="red" :label="t('accounts.delete')"
+              @click="deleteAccount(a.uuid)" @keydown.stop>
+              <svg class="size-3" viewBox="0 0 12 12">
+                <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </IconButton>
+          </RadioGroupItem>
+        </RadioGroupRoot>
         <!-- 空列表提示 -->
-        <p v-if="accounts.length === 0" class="grow flex items-center justify-center text-2xl font-medium">
+        <p v-else class="grow flex items-center justify-center text-2xl font-medium">
           {{ t('accounts.noneFound') }}
         </p>
       </div>

@@ -28,11 +28,11 @@ function onLanguageChange(value: string) {
   <div class="grow flex flex-col">
     <Card class="flex flex-col gap-4">
       <!-- 语言行 -->
-      <label class="flex flex-col gap-1 grow">
+      <div class="flex flex-col gap-1 grow">
         <span class="text-sm font-medium">{{ t('settings.language') }}</span>
         <Dropdown :model-value="locale" :options="languageOptions" :placeholder="t('settings.language')"
-          @update:model-value="onLanguageChange" />
-      </label>
+          :aria-label="t('settings.language')" @update:model-value="onLanguageChange" />
+      </div>
     </Card>
   </div>
 </template>

@@ -16,9 +16,11 @@ withDefaults(defineProps<{
 
 <template>
   <button
-    class="rounded-lg text-sm transition duration-150 bg-white/50 border border-[#B7EB8F]
-           hover:bg-[#B7EB8F] active:bg-[#95DE64] active:scale-95 shrink-0
-           disabled:opacity-50 disabled:cursor-not-allowed"
+    type="button"
+    class="rounded-lg text-sm transition duration-150 bg-white/50 border border-deci-border
+           hover:bg-deci-border active:bg-deci-hover active:scale-95 shrink-0
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/40"
     :class="size === 'sm' ? 'h-8 px-3' : 'h-12 px-6'"
     :disabled="disabled || loading"
   >

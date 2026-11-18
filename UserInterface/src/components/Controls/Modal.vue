@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, VisuallyHidden } from 'reka-ui'
+import { t } from '../../stores/locale'
+
 withDefaults(defineProps<{
   title?: string
   centered?: boolean
@@ -7,55 +10,33 @@ withDefaults(defineProps<{
   centered: false
 })
 
-// v-model：外部控制显隐
+// v-model：外部控制显隐（Reka DialogRoot 的 open 状态）
 const model = defineModel<boolean>({ default: false })
 </script>
 
 <template>
-  <!-- defer：目标 #main-card 由 App.vue 自身渲染，挂载时尚未进入 document，
-       立即解析会得到 null（Vue 警告，弹窗不渲染）；延迟到挂载完成后再解析 -->
-  <Teleport to="#main-card" defer>
-    <Transition name="notify">
-      <div v-if="model" class="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
-        <Transition name="card" appear>
-          <div v-if="model"
-            class="rounded-lg bg-white/95 p-6 shadow-lg border border-[#B7EB8F] flex flex-col gap-2"
-            :class="centered && 'items-center'"
-            @click.stop>
-            <span v-if="title" class="text-base font-medium">{{ title }}</span>
-            <slot />
-            <div v-if="$slots.footer" class="flex gap-2"
-              :class="centered ? 'justify-center' : 'justify-end'">
-              <slot name="footer" />
-            </div>
-          </div>
-        </Transition>
-      </div>
-    </Transition>
-  </Teleport>
+  <!-- 挂载到 #main-card：保持圆角卡片裁剪，覆盖整个窗口内容区；
+       defer 等 App.vue 的卡片节点进入 document 后再解析目标 -->
+  <DialogRoot v-model:open="model">
+    <DialogPortal to="#main-card" defer>
+      <DialogOverlay
+        class="absolute inset-0 z-50 bg-black/30 data-[state=open]:animate-deci-overlay-in" />
+      <DialogContent
+        class="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2
+               rounded-lg bg-white/95 p-6 shadow-lg border border-deci-border flex flex-col gap-2
+               data-[state=open]:animate-deci-content-in data-[state=closed]:animate-deci-content-out"
+        :class="centered && 'items-center'"
+        @pointer-down-outside.prevent>
+        <DialogTitle v-if="title" class="text-base font-medium">{{ title }}</DialogTitle>
+        <VisuallyHidden v-else>
+          <DialogTitle>{{ t('common.dialog') }}</DialogTitle>
+        </VisuallyHidden>
+        <slot />
+        <div v-if="$slots.footer" class="flex gap-2"
+          :class="centered ? 'justify-center' : 'justify-end'">
+          <slot name="footer" />
+        </div>
+      </DialogContent>
+    </DialogPortal>
+  </DialogRoot>
 </template>
-
-<style scoped>
-.notify-enter-active {
-  transition: opacity 0.15s ease-out;
-}
-.notify-leave-active {
-  transition: opacity 0.15s ease-out;
-}
-.notify-enter-from,
-.notify-leave-to {
-  opacity: 0;
-}
-
-.card-enter-active {
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-}
-.card-leave-active {
-  transition: opacity 0.1s ease-out, transform 0.1s ease-out;
-}
-.card-enter-from,
-.card-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-</style>

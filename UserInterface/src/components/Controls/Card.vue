@@ -12,11 +12,11 @@ withDefaults(defineProps<{
 
 <template>
   <div
-    class="bg-white/25 hover:bg-white/50 shadow-[0_0_4px_#52C41A3F] border border-transparent
-           hover:border-[#52C41A]/25 rounded-lg transition ease-out duration-150"
+    class="bg-white/25 hover:bg-white/50 shadow-deci border border-transparent
+           hover:border-deci-primary/25 rounded-lg transition ease-out duration-150"
     :class="[
       padding,
-      hoverShadow && 'hover:shadow-[0_0_8px_#52C41A3F]',
+      hoverShadow && 'hover:shadow-deci-hover',
       clickable && 'cursor-pointer group'
     ]"
   >

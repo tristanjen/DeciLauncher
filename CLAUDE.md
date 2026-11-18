@@ -1,6 +1,6 @@
 # Deci Launcher — 开发指南（Agent）
 
-跨平台 Minecraft 启动器：**C#/.NET 10 + Photino.NET** 后端，**Vue 3 + UnoCSS** 前端，通过 WebView 原生消息桥通信。前端在 Release 下由内嵌 Kestrel（`127.0.0.1` 随机端口 + token/cookie）提供，Debug 下由 Vite 提供。
+跨平台 Minecraft 启动器：**C#/.NET 10 + Photino.NET** 后端，**Vue 3 + Tailwind CSS + Reka UI** 前端，通过 WebView 原生消息桥通信。前端在 Release 下由内嵌 Kestrel（`127.0.0.1` 随机端口 + token/cookie）提供，Debug 下由 Vite 提供。
 
 当前版本见 `DeciLauncher.csproj` 的 `<Version>`；前端 `UserInterface/package.json` 的 `version` 必须与之一致。
 
@@ -19,7 +19,7 @@
 | `Program.Dpi.cs` / `Program.Native.cs` / `Program.Version.cs` / `Program.LaunchNatives.cs` | DPI、P/Invoke、版本、native 匹配 |
 | `Launching/` | 纯函数组件：参数模板、路径映射、WebView 参数、反射 fallback 等 |
 | `Log.cs` / `AtomicFile.cs` / `GameLogBuffer.cs` / `GameMessages.cs` | 日志、原子写、游戏输出、消息常量 |
-| `UserInterface/` | Vue 3 + UnoCSS + Vite 前端（`src/views`、`components`、`stores`、`i18n`、`native.ts`） |
+| `UserInterface/` | Vue 3 + Tailwind CSS + Reka UI + Vite 前端（`src/views`、`components`、`stores`、`i18n`、`native.ts`） |
 | `DeciLauncher.Tests/` | xUnit v4 测试 |
 | `packaging/` | 图标、`Info.plist`、`make-dmg.sh` |
 | `global.json` | .NET 10 MTP 测试模式配置 |
@@ -63,6 +63,14 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
   - **禁止**写成 `window.external.receiveMessage = dispatch`：这会覆盖 Photino 注入的注册函数，导致所有后端消息静默丢失（`native.test.ts` 已覆盖）。
 - 消息类型契约在 `src/messages.ts`；后端消息常量在 `GameMessages.cs`，其余消息在 `Program.Window.cs` 中按 `type` 路由。
 
+### 前端样式与组件
+
+- 样式入口：`UserInterface/src/assets/main.css` 的 `@import "tailwindcss"` + `@theme`；颜色/阴影/动画全部走语义 token（`deci-*`），不要在模板里新增硬编码色值。
+- 交互原语：`Controls/` 是对 Reka UI 的薄封装——`Modal` → Dialog、`Notification` → AlertDialog、`Dropdown` → Select、`RangeSlider` → Slider、`Toast` → Toast、列表选择 → RadioGroup。按钮/卡片/输入框等 Reka 没有对应原语的组件保持手写 + Tailwind。
+- Reka UI 的浮层默认 portal 到 `body`；`Modal` / `Notification` 显式 portal 到 `#main-card`，避免圆角卡片裁剪丢失。
+- Tailwind v4 的 important 修饰符是**后缀**（`text-deci-primary-active!`）；不要写 UnoCSS 的前缀形式 `!text-...`。
+- Reka UI 的 `SelectItem` **禁止** `value=""`（空值用于清空选择并显示 placeholder）；空值状态由 `Controls/Dropdown.vue` 统一映射为哨兵值。
+
 ### 窗口与平台差异
 
 - **Windows**：初始窗口放到屏幕外（`-32000,-32000`），等前端首帧消息后再居中，避免 WebView2 首帧黑底；`WebViewArgumentsBuilder` 的 Chromium 参数**只能**在 Windows 传入。
@@ -105,18 +113,20 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
 - 升级前先看 `dotnet list <project> package --outdated --highest-minor` 与 `pnpm outdated`。
 - **TypeScript 保持 6.0.x**：Volar/vue-tsc 的 peer 依赖要求 `<7`，升到 7 会导致 `vue-tsc` 崩溃。
 - **Microsoft.Extensions.FileProviders.Embedded 保持 10.0.x**：11.x 面向 net11.0；本项目是 net10.0。
+- **Tailwind CSS 保持 4.x**：入口 `src/assets/main.css` 使用 `@import "tailwindcss"` + `@theme`；`@tailwindcss/vite` 与 Vite 8 兼容。Tailwind v4 要求 Safari 16.4+，.NET 10 支持的 macOS 15+ 已满足。
+- **Reka UI 保持 2.x**：只提供无头行为与 ARIA，不携带样式；`SelectItem` 的空字符串限制见上文。
 - xunit v4 依赖 MTP 模式；如果 `dotnet test` 报 MTP/VSTest 错误，检查 `global.json` 是否被删除。
 - 大版本升级单独提交，并在 PR/提交信息中说明兼容性取舍。
 
 ## 设计与 UI 技能路由
 
-本项目 UI 是 **Vue 3 + UnoCSS**，不是 React/Tailwind/shadcn。按任务显式选择技能：
+本项目 UI 是 **Vue 3 + Tailwind CSS + Reka UI**，不是 React/shadcn。按任务显式选择技能：
 
 | 任务 | 使用 | 禁止/避免 |
 |---|---|---|
 | 新页面、组件、交互、布局 | `frontend-design` + `ui-ux-pro-max` | `ui-styling` |
 | 配色、字体、UX/可访问性规则 | `ui-ux-pro-max` | — |
-| Design token / CSS 变量 | `design-system` | 不要执行 Tailwind 集成 |
+| Design token / CSS 变量 | `design-system` | 不要引入 shadcn 的 token 体系 |
 | 品牌手册、语气、logo 规范 | `brand` | — |
 | 发版 banner、商店图、宣传物料 | `banner-design` | `design`（依赖外部 AI 图像 API） |
 | 图表/统计可视化 | `dataviz` | `slides` |
@@ -128,7 +138,7 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
 
 硬规则：
 
-- **不要**运行 `npx shadcn@latest init`，不要引入 Tailwind/shadcn；样式一律用 UnoCSS + `src/assets/main.css` 的现有变量。
+- **不要**运行 `npx shadcn@latest init` 或引入 shadcn；样式一律用 Tailwind CSS + `src/assets/main.css` 的 `@theme` token。
 - 不要用 `ui-styling` 接管 UI 实现；它只作为组件模式/可访问性参考。
 - 保持绿色极简主题；新页面先读 `src/assets/main.css` 和现有 `views/`，沿用现有 token/类名习惯。
 - 用户可见文案必须走 `src/i18n/zh-CN.ts` 与 `en-US.ts`，不要硬编码。
@@ -138,7 +148,7 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
 ## 代码风格
 
 - C#：`Nullable` 开启、`AnalysisLevel=latest`、隐式 using；保持现有 partial class 拆分习惯。
-- 前端：Vue 3 `<script setup>`、TypeScript、UnoCSS；使用 `stores/` 的共享状态与 `native.ts` 的消息桥。
+- 前端：Vue 3 `<script setup>`、TypeScript、Tailwind CSS、Reka UI；使用 `stores/` 的共享状态与 `native.ts` 的消息桥。
 - 跨平台路径：使用 `Path.Combine` / `LibraryPathMapper` / 平台抽象，不要硬编码分隔符。
 - Photino/native 互操作：保持 `Program.Native.cs` 与 `Program.MacWindow.cs` 的 P/Invoke 声明集中、可审查。
 
@@ -152,14 +162,16 @@ dotnet publish DeciLauncher.csproj -c Release -r osx-x64
 - 不要重新引入 macOS 自动不透明回退；透明由 `Program.MacWindow.cs` 负责，`--opaque` 仅作回退。
 - 不要改默认配置目录/游戏目录而不更新迁移逻辑、README 与日志路径。
 - 不要改 CI 的六平台矩阵或版本来源而不更新对应校验脚本；`.app` 版本注入与 DMG 布局属于发布流程的一部分。
-- 不要引入 Tailwind/shadcn，或用 `ui-styling` 接管实现。
+- 不要重新引入 UnoCSS；样式统一走 Tailwind CSS。
+- 不要给 Reka UI `SelectItem` 传空字符串 `value`；空值状态通过 `Controls/Dropdown.vue` 的哨兵值处理。
+- 不要引入 shadcn，或用 `ui-styling` 接管实现。
 
 ## 完成前检查清单
 
 1. 后端：`dotnet build` + `dotnet test -c Release`。
 2. 前端：`pnpm test` + `pnpm type-check` + `pnpm build`。
 3. 版本：`node UserInterface/scripts/check-version.mjs`。
-4. 改了平台相关代码：在对应平台实际启动；改了 macOS 打包：实际挂载 DMG 检查 `.app`、`Applications` 链接与图标布局。
+4. 改了平台相关代码：在对应平台实际启动；改了 UI：用 `webapp-testing` 在 Chromium 与 WebKit 跑关键流程；改了 macOS 打包：实际挂载 DMG 检查 `.app`、`Applications` 链接与图标布局。
 5. 改了 CI/YAML：本地做 YAML 语法检查（如 `ruby -e 'require "yaml"; YAML.load_file(...)'`）。
 6. 改了用户可见行为/路径/功能：同步更新 `README.md`、`README.zh-CN.md` 与本文件。
 7. 任务完成后按当前用户的指示提交并推送。
