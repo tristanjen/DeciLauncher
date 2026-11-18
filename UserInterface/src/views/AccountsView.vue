@@ -142,7 +142,7 @@ function typeColor(type: string): string {
           <RadioGroupItem v-for="a in accounts" :key="a.uuid" :value="a.uuid" as="div"
             class="group flex w-full cursor-pointer items-center gap-2 rounded-lg border border-transparent
                    bg-white/25 px-3 py-2 text-left shadow-deci transition ease-out duration-150
-                   hover:bg-white/50 hover:border-deci-primary/25
+                   hover:border-deci-primary/25
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/40">
             <!-- 单选圆 -->
             <RadioItem :selected="selectedAccount === a.uuid" />
