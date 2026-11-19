@@ -43,35 +43,10 @@ partial class Program
                 return;
             }
 
-            var items = new List<object>();
-            var seenPaths = new HashSet<string>(StringComparer.Ordinal);
-
-            if (OperatingSystem.IsWindows())
-            {
-                // Windows：沿用 MinecraftLaunch 的注册表 + `where javaw` 扫描
-                await foreach (var java in JavaUtil.EnumerableJavaAsync())
-                    AddJavaItem(items, seenPaths, java);
-            }
-            else
-            {
-                // MinecraftLaunch 4.0.7 的 Unix 扫描依赖 `whereis -b java` 的输出来判断路径，
-                // 但 whereis 实际输出 "java: /usr/bin/java"（整行不是路径），File.Exists 必然失败，
-                // 导致 macOS/Linux 扫描恒为空；且 macOS 的 /usr/bin/java 只是系统存根。
-                // 这里自行枚举常见位置，再复用库的 GetJavaInfoAsync 解析版本。
-                foreach (var candidate in EnumerateJavaCandidates())
-                {
-                    try
-                    {
-                        var java = await JavaUtil.GetJavaInfoAsync(candidate);
-                        AddJavaItem(items, seenPaths, java);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 不可用的候选（如未安装 JVM 时的 /usr/bin/java 存根）跳过即可
-                        Log.Warn($"[Java] 无法解析 {candidate}: {ex.Message}");
-                    }
-                }
-            }
+            var javas = await EnumerateJavaEntriesAsync();
+            var items = javas
+                .Select(java => (object)new { path = java.JavaPath, version = java.JavaVersion })
+                .ToList();
 
             // 已被更新请求取代：丢弃结果，避免旧扫描覆盖新缓存或乱序回发
             if (IsStale()) return;
@@ -96,24 +71,65 @@ partial class Program
     }
 
     /// <summary>
-    /// 将解析成功的 Java 加入结果（跳过空版本与重复路径）。
-    /// 去重按解析符号链接后的真实路径：JAVA_HOME 与 PATH 常指向同一 JDK。
+    /// 枚举可用 Java 运行时（设置页扫描与游戏启动共用）。
+    /// Windows 沿用 MinecraftLaunch 的注册表 + `where javaw` 扫描；macOS/Linux 下库的
+    /// whereis 扫描恒为空（原因见下方注释），改为自行枚举常见位置后用库解析版本。
+    /// 结果按解析符号链接后的真实路径去重，跳过无法解析版本的条目。
+    /// 返回空列表表示未检测到可用 Java，由调用方决定提示方式。
     /// </summary>
-    private static void AddJavaItem(List<object> items, HashSet<string> seenPaths, JavaEntry? java)
+    private static async Task<List<JavaEntry>> EnumerateJavaEntriesAsync(CancellationToken cancellationToken = default)
     {
-        if (java == null || string.IsNullOrEmpty(java.JavaVersion) || string.IsNullOrEmpty(java.JavaPath))
-            return;
+        var items = new List<JavaEntry>();
+        var seenPaths = new HashSet<string>(StringComparer.Ordinal);
 
-        string key;
-        try { key = File.ResolveLinkTarget(java.JavaPath, true)?.FullName ?? Path.GetFullPath(java.JavaPath); }
-        catch { key = Path.GetFullPath(java.JavaPath); }
-
-        if (!seenPaths.Add(key)) return;
-        items.Add(new
+        void Add(JavaEntry? java)
         {
-            path = java.JavaPath,
-            version = java.JavaVersion
-        });
+            if (java == null || string.IsNullOrEmpty(java.JavaVersion) || string.IsNullOrEmpty(java.JavaPath))
+                return;
+
+            string key;
+            try { key = File.ResolveLinkTarget(java.JavaPath, true)?.FullName ?? Path.GetFullPath(java.JavaPath); }
+            catch { key = Path.GetFullPath(java.JavaPath); }
+
+            if (seenPaths.Add(key)) items.Add(java);
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            await foreach (var java in JavaUtil.EnumerableJavaAsync())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Add(java);
+            }
+        }
+        else
+        {
+            // MinecraftLaunch 4.0.7 的 Unix 扫描依赖 `whereis -b java` 的输出来判断路径，
+            // 但 whereis 实际输出 "java: /usr/bin/java"（整行不是路径），File.Exists 必然失败，
+            // 导致 macOS/Linux 扫描恒为空（甚至可能 yield 出 null 条目）；
+            // 且 macOS 的 /usr/bin/java 只是系统存根。
+            // 这里自行枚举常见位置，再复用库的 GetJavaInfoAsync 解析版本。
+            foreach (var candidate in EnumerateJavaCandidates())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    Add(await JavaUtil.GetJavaInfoAsync(candidate, cancellationToken));
+                }
+                catch (OperationCanceledException)
+                {
+                    // 取消不是「候选不可用」，必须向上传播（外层按取消路径清理）
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    // 不可用的候选（如未安装 JVM 时的 /usr/bin/java 存根）跳过即可
+                    Log.Warn($"[Java] 无法解析 {candidate}: {ex.Message}");
+                }
+            }
+        }
+
+        return items;
     }
 
     /// <summary>

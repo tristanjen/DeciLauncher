@@ -95,6 +95,25 @@ partial class Program
     }
 
     /// <summary>
+    /// 从候选 Java 中挑选适合该游戏版本的运行时。
+    /// MinecraftLaunch 4.0.7 在无匹配项时直接抛 InvalidOperationException
+    /// （"Sequence contains no matching element"），这里收敛为 null，
+    /// 交给调用方按「未找到合适的 Java 运行时」提示用户，而不是把英文 LINQ 异常抛给前端
+    /// </summary>
+    private static JavaEntry? GetAppropriateJavaSafe(MinecraftEntry game, IReadOnlyList<JavaEntry> javas)
+    {
+        try
+        {
+            return game.GetAppropriateJava(javas);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Warn($"[Java] 未找到匹配的 Java 运行时: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// 执行游戏启动流程：查找账户 → 解析游戏 → 匹配 Java → 启动
     /// 返回 Task 而非 async void：异常由内部 try/catch 全量捕获并转 game-error 消息，
     /// 调用方以 fire-and-forget（_ = ...）方式投递，未处理异常不会逃逸到消息线程
@@ -196,11 +215,25 @@ partial class Program
             // 3. 查找 Java 运行时（后台线程执行，避免阻塞 UI）
             if (!launchToken.IsCancellationRequested)
                 TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "launch-progress", stage = "java" }));
-            var javas = await Task.Run(() => JavaUtil.EnumerableJavaAsync().ToBlockingEnumerable().ToList(), launchToken);
+            // 与设置页共用同一枚举逻辑：MinecraftLaunch 4.0.7 的 JavaUtil 在 macOS/Linux
+            // 恒返回空列表（whereis 输出不是路径），直接交给 GetAppropriateJava 会抛
+            // InvalidOperationException("Sequence contains no matching element")。
+            // 枚举内含同步进程输出读取，放到线程池避免阻塞消息线程
+            var javas = await Task.Run(() => EnumerateJavaEntriesAsync(launchToken), launchToken);
             if (launchToken.IsCancellationRequested) { CleanupCancelled(window, null, generation); return; }
+            if (javas.Count == 0)
+            {
+                TryNotifyWindow(window, JsonSerializer.Serialize(new
+                {
+                    type = "game-error",
+                    message = L("未检测到可用的 Java 运行时，请先安装 Java 或在设置中手动指定",
+                                "No Java runtime detected. Please install Java or specify one in Settings.")
+                }));
+                return;
+            }
             MinecraftLaunch.Base.Models.Game.JavaEntry? java = javaPath switch
             {
-                "__auto__" or "" => game.GetAppropriateJava(javas),
+                "__auto__" or "" => GetAppropriateJavaSafe(game, javas),
                 _ => javas.FirstOrDefault(j => j.JavaPath == javaPath)
             };
             if (java == null)
@@ -534,7 +567,8 @@ partial class Program
         }
         catch (Exception ex)
         {
-            Log.Warn($"[Launch] 启动流程异常: {ex.Message}");
+            // 记录完整异常（含堆栈）：此前只记 Message，定位启动失败根因困难
+            Log.Warn($"[Launch] 启动流程异常: {ex}");
             TryNotifyWindow(window, JsonSerializer.Serialize(new { type = "game-error", message = ex.Message }));
         }
         finally
