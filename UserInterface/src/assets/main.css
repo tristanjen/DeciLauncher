@@ -121,13 +121,13 @@
 
 /* 设置侧栏：从左滑入滑出 + 淡入淡出 + 0.95 缩放回弹（曲线与页面切换一致） */
 @keyframes deci-sidebar-slide-in {
-  from { translate: -100% 0; }
+  from { translate: -25% 0; }
   to { translate: 0 0; }
 }
 
 @keyframes deci-sidebar-slide-out {
   from { translate: 0 0; }
-  to { translate: -100% 0; }
+  to { translate: -25% 0; }
 }
 
 .animate__animated.deci-sidebar-enter {
