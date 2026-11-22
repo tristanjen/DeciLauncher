@@ -68,6 +68,33 @@
   to { opacity: 1; translate: 0 0; }
 }
 
+/* 页面路由过渡：Animate.css 的 fadeIn/fadeOut 负责透明度，
+   第二条动画负责 0.95 缩放；两者同一帧启动、时长各自独立。
+   .animate__animated 已提供 animation-fill-mode: both。 */
+@keyframes deci-page-scale-in {
+  from { scale: 0.95; }
+  to { scale: 1; }
+}
+
+@keyframes deci-page-scale-out {
+  from { scale: 1; }
+  to { scale: 0.95; }
+}
+
+/* 复合选择器：压过 .animate__fadeIn/.animate__fadeOut 的 animation-name 与
+   .animate__animated 的 animation-duration；无 layer 确保压过 Animate.css。 */
+.animate__animated.deci-page-enter {
+  animation-name: fadeIn, deci-page-scale-in;
+  animation-duration: 0.15s, 0.2s;
+  animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1);
+}
+
+.animate__animated.deci-page-leave {
+  animation-name: fadeOut, deci-page-scale-out;
+  animation-duration: 0.1s, 0.1s;
+  animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1);
+}
+
 @layer base {
   /* 透明背景：配合 Photino 的 SetTransparent(true) 实现毛玻璃/透明窗口效果 */
   body {

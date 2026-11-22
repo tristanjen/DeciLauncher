@@ -121,15 +121,14 @@ onMounted(async () => {
            必须通过 v-slot 取出组件再由 <component> 渲染（否则路由切换动画失效并告警） -->
       <RouterView v-slot="{ Component }">
         <Transition mode="out-in"
-          enter-active-class="animate__animated animate__fadeIn"
-          leave-active-class="animate__animated animate__fadeOut">
+          enter-active-class="animate__animated animate__fadeIn deci-page-enter"
+          leave-active-class="animate__animated animate__fadeOut deci-page-leave">
           <component :is="Component" :key="$route.matched[0]?.name"
             class="grow p-3 rounded-b-lg overflow-y-auto scroll-smooth" />
         </Transition>
       </RouterView>
       <Notification />
       <Toast />
-      <!-- <NavigationBar /> -->
     </div>
   </div>
 </template>
