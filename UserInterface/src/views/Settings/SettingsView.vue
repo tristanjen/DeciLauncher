@@ -24,8 +24,9 @@ onBeforeRouteLeave(() => {
 
 <template>
   <div class="flex gap-3 -ml-3">
-    <Transition enter-active-class="animate__animated animate__slideInLeft"
-      leave-active-class="animate__animated animate__slideOutLeft">
+    <!-- 侧栏复用页面切换的动画：fadeIn/fadeOut + 0.95 缩放回弹 -->
+    <Transition enter-active-class="animate__animated animate__fadeIn deci-page-enter"
+      leave-active-class="animate__animated animate__fadeOut deci-page-leave">
       <Card v-if="sidebarVisible" hover-shadow class="flex flex-col items-end gap-2 w-50 h-107 rounded-l-none fixed">
         <NavLink to="/settings/gameSettings" :label="t('settings.instanceSettings')" size="sidebar" />
         <NavLink to="/settings/LauncherSettings" :label="t('settings.launcherSettings')" size="sidebar" />
