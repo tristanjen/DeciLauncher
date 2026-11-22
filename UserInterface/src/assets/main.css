@@ -95,6 +95,41 @@
   animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1);
 }
 
+/* 账户 / 游戏内容区：整块下拉弹入，还原旧版 content-drop（0.3s 轻微回弹） */
+@keyframes deci-list-drop-in {
+  from { opacity: 0; translate: 0 -64px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.animate__animated.deci-list-enter {
+  animation-name: deci-list-drop-in;
+  animation-duration: 0.3s;
+  animation-timing-function: cubic-bezier(0.42, 1.5, 0.58, 1);
+}
+
+/* 设置内容区：淡入淡出 + 小幅上下位移，还原旧版 content-drop */
+@keyframes deci-settings-move-in {
+  from { translate: 0 -32px; }
+  to { translate: 0 0; }
+}
+
+@keyframes deci-settings-move-out {
+  from { translate: 0 0; }
+  to { translate: 0 8px; }
+}
+
+.animate__animated.deci-settings-enter {
+  animation-name: fadeIn, deci-settings-move-in;
+  animation-duration: 0.15s, 0.2s;
+  animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1);
+}
+
+.animate__animated.deci-settings-leave {
+  animation-name: fadeOut, deci-settings-move-out;
+  animation-duration: 0.1s, 0.1s;
+  animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1);
+}
+
 @layer base {
   /* 透明背景：配合 Photino 的 SetTransparent(true) 实现毛玻璃/透明窗口效果 */
   body {

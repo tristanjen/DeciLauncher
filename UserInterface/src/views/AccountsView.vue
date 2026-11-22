@@ -133,8 +133,7 @@ function typeColor(type: string): string {
     </div>
     <!-- 账户内容区：下拉弹入动画 -->
     <Transition appear
-      enter-active-class="animate__animated animate__fadeInDown"
-      leave-active-class="animate__animated animate__fadeOutUp">
+      enter-active-class="animate__animated deci-list-enter">
       <div v-if="!accountBusy" key="accounts" class="grow flex flex-col gap-2">
         <!-- 账户列表：Reka RadioGroup（as="div" 允许行内嵌套复制/删除按钮） -->
         <RadioGroupRoot v-if="accounts.length > 0" :model-value="selectedAccount" orientation="vertical"

@@ -113,8 +113,7 @@ function onGameSelect(value: AcceptableValue) {
     </div>
     <!-- 游戏内容区：下拉弹入动画 -->
     <Transition appear
-      enter-active-class="animate__animated animate__fadeInDown"
-      leave-active-class="animate__animated animate__fadeOutUp">
+      enter-active-class="animate__animated deci-list-enter">
       <div v-if="!scanningGames" key="games" class="grow flex flex-col gap-3">
         <RadioGroupRoot v-if="games.length > 0" :model-value="selectedGame" orientation="vertical"
           class="flex grow flex-col gap-3" @update:model-value="onGameSelect">

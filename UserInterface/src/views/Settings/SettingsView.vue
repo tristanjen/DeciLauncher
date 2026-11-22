@@ -36,8 +36,8 @@ onBeforeRouteLeave(() => {
          侧栏滑出后占位仍在，右侧内容不左移跳动 -->
     <div class="w-50 h-107 left-3" aria-hidden="true" />
     <Transition mode="out-in" appear
-      enter-active-class="animate__animated animate__fadeInDown"
-      leave-active-class="animate__animated animate__fadeOutUp">
+      enter-active-class="animate__animated deci-settings-enter"
+      leave-active-class="animate__animated deci-settings-leave">
       <div class="grow flex flex-col h-min" :key="$route.fullPath">
         <RouterView />
       </div>
