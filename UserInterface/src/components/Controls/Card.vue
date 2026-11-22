@@ -12,8 +12,8 @@ withDefaults(defineProps<{
 
 <template>
   <div
-    class="bg-white/25 shadow-deci border border-transparent
-           hover:border-deci-primary/25 rounded-lg transition ease-out duration-150"
+    class="bg-white/30 shadow-deci border
+           border-deci-primary/25 rounded-lg transition ease-out duration-150"
     :class="[
       padding,
       hoverShadow && 'hover:shadow-deci-hover',

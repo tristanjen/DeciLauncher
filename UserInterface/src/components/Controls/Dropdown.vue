@@ -60,12 +60,14 @@ function onChange(value: AcceptableValue) {
     <!-- 触发按钮 -->
     <SelectTrigger
       :aria-label="ariaLabel"
-      class="group h-8 w-full rounded-lg border border-deci-border bg-white/50 px-2 text-sm flex items-center
+      class="group h-8 w-full rounded-lg border border-deci-border bg-white/30 px-2 text-sm flex items-center
              cursor-pointer select-none transition ease-out duration-150
              hover:border-deci-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-deci-primary/25">
-      <SelectValue :placeholder="effectivePlaceholder" class="grow truncate text-left" />
+      <!-- w-0：截断文本仍需把 flex 基准宽度压到 0，否则过长选项会把
+           父级 flex 布局（如设置页 RouterView）的 min-content 撑宽 -->
+      <SelectValue :placeholder="effectivePlaceholder" class="w-0 grow truncate text-left" />
       <SelectIcon>
-        <ChevronDown :size="12" :stroke-width="1.5" aria-hidden="true"
+        <ChevronDown :size="14" :stroke-width="1.5" aria-hidden="true"
           class="ml-1 shrink-0 transition duration-150 group-data-[state=open]:rotate-180" />
       </SelectIcon>
     </SelectTrigger>

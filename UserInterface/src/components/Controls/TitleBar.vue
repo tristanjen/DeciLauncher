@@ -54,7 +54,7 @@ function handleLogoClick() {
 
 <template>
   <!-- 标题栏容器：212.5x12 单元（实际尺寸由 Tailwind spacing 倍数定义） -->
-  <div class="border-b border-deci-primary/25 shadow-deci relative w-212.5 h-12 bg-white/50 rounded-t-lg inline-flex flex-row items-center justify-between shrink-0" @mousedown="onMouseDown">
+  <div class="border-b border-deci-primary/25 shadow-deci relative w-212.5 h-12 bg-white/30 rounded-t-lg inline-flex flex-row items-center justify-between shrink-0" @mousedown="onMouseDown">
     <!-- 应用 Logo / 标题文字（SVG 图形） -->
     <img class="ml-4" src="../../assets/images/title.svg" alt="Deci Launcher" @click="handleLogoClick" @mousedown.stop>
 

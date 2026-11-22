@@ -27,7 +27,7 @@ onBeforeRouteLeave(() => {
     <!-- 侧栏：从左滑入滑出 + 淡入淡出 + 0.95 缩放回弹 -->
     <Transition enter-active-class="animate__animated deci-sidebar-enter"
       leave-active-class="animate__animated deci-sidebar-leave">
-      <Card v-if="sidebarVisible" hover-shadow class="flex flex-col items-end gap-2 w-50 h-107 rounded-l-none fixed">
+      <Card v-if="sidebarVisible" class="flex flex-col items-end gap-2 w-50 h-107 rounded-l-none fixed">
         <NavLink to="/settings/gameSettings" :label="t('settings.instanceSettings')" size="sidebar" />
         <NavLink to="/settings/LauncherSettings" :label="t('settings.launcherSettings')" size="sidebar" />
         <NavLink to="/settings/about" :label="t('settings.about')" size="sidebar" />
