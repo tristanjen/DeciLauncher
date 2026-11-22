@@ -107,27 +107,41 @@
   animation-timing-function: cubic-bezier(0.42, 1.5, 0.58, 1);
 }
 
-/* 设置内容区：淡入淡出 + 小幅上下位移，还原旧版 content-drop */
-@keyframes deci-settings-move-in {
-  from { translate: 0 -32px; }
-  to { translate: 0 0; }
-}
-
+/* 设置内容区离场：淡出 + 轻微下移（入场复用上面的列表下拉弹入） */
 @keyframes deci-settings-move-out {
   from { translate: 0 0; }
   to { translate: 0 8px; }
-}
-
-.animate__animated.deci-settings-enter {
-  animation-name: fadeIn, deci-settings-move-in;
-  animation-duration: 0.15s, 0.2s;
-  animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1);
 }
 
 .animate__animated.deci-settings-leave {
   animation-name: fadeOut, deci-settings-move-out;
   animation-duration: 0.1s, 0.1s;
   animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1);
+}
+
+/* 设置侧栏：从左滑入滑出 + 淡入淡出 + 0.95 缩放回弹（曲线与页面切换一致） */
+@keyframes deci-sidebar-slide-in {
+  from { translate: -100% 0; }
+  to { translate: 0 0; }
+}
+
+@keyframes deci-sidebar-slide-out {
+  from { translate: 0 0; }
+  to { translate: -100% 0; }
+}
+
+.animate__animated.deci-sidebar-enter {
+  animation-name: fadeIn, deci-sidebar-slide-in, deci-page-scale-in;
+  animation-duration: 0.15s, 0.2s, 0.2s;
+  animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1),
+    cubic-bezier(0.42, 1.5, 0.58, 1);
+}
+
+.animate__animated.deci-sidebar-leave {
+  animation-name: fadeOut, deci-sidebar-slide-out, deci-page-scale-out;
+  animation-duration: 0.1s, 0.1s, 0.1s;
+  animation-timing-function: ease-out, cubic-bezier(0.42, 1.5, 0.58, 1),
+    cubic-bezier(0.42, 1.5, 0.58, 1);
 }
 
 @layer base {

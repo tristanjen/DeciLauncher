@@ -24,9 +24,9 @@ onBeforeRouteLeave(() => {
 
 <template>
   <div class="flex gap-3 -ml-3">
-    <!-- 侧栏复用页面切换的动画：fadeIn/fadeOut + 0.95 缩放回弹 -->
-    <Transition enter-active-class="animate__animated animate__fadeIn deci-page-enter"
-      leave-active-class="animate__animated animate__fadeOut deci-page-leave">
+    <!-- 侧栏：从左滑入滑出 + 淡入淡出 + 0.95 缩放回弹 -->
+    <Transition enter-active-class="animate__animated deci-sidebar-enter"
+      leave-active-class="animate__animated deci-sidebar-leave">
       <Card v-if="sidebarVisible" hover-shadow class="flex flex-col items-end gap-2 w-50 h-107 rounded-l-none fixed">
         <NavLink to="/settings/gameSettings" :label="t('settings.instanceSettings')" size="sidebar" />
         <NavLink to="/settings/LauncherSettings" :label="t('settings.launcherSettings')" size="sidebar" />
@@ -36,8 +36,9 @@ onBeforeRouteLeave(() => {
     <!-- 占位元素：fixed 脱离文档流后保持右侧内容位置；常驻渲染，
          侧栏滑出后占位仍在，右侧内容不左移跳动 -->
     <div class="w-50 h-107 left-3" aria-hidden="true" />
+    <!-- 子页入场与账户/游戏列表一致：下拉弹入 -->
     <Transition mode="out-in" appear
-      enter-active-class="animate__animated deci-settings-enter"
+      enter-active-class="animate__animated deci-list-enter"
       leave-active-class="animate__animated deci-settings-leave">
       <div class="grow flex flex-col h-min" :key="$route.fullPath">
         <RouterView />
